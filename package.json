@@ -1,0 +1,26 @@
+{
+  "name": "ai_auto_agent",
+  "version": "1.0.0",
+  "main": "index.js",
+  "directories": {
+    "test": "tests"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/heylium/ai-auto-agent.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/heylium/ai-auto-agent/issues"
+  },
+  "homepage": "https://github.com/heylium/ai-auto-agent#readme",
+  "description": "",
+  "dependencies": {
+    "playwright": "^1.58.2"
+  }
+}
