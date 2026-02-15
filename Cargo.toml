@@ -38,8 +38,8 @@ toml = "0.8"
 # Futures
 futures = "0.3"
 
-# For browser automation
-# playwright = "0.1"
+# For browser automation (via Node.js)
+# Note: Use scripts/fanqie-auto.js with Node.js Playwright
 
 # CLI
 clap = { version = "4.4", features = ["derive"] }

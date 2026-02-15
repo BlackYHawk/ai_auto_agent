@@ -332,6 +332,67 @@ impl Default for FanqieClient {
     }
 }
 
+/// Run browser automation for Fanqie actions
+pub async fn run_browser_automation(
+    action: &str,
+    project_id: &str,
+    title: &str,
+    genre: &str,
+    content: &str,
+) -> Result<String> {
+    tracing::info!("Running browser automation for: {}", action);
+
+    // Set environment variables for the Node.js script
+    std::env::set_var("FANQIE_USERNAME", std::env::var("FANQIE_USERNAME").unwrap_or_default());
+    std::env::set_var("FANQIE_PASSWORD", std::env::var("FANQIE_PASSWORD").unwrap_or_default());
+
+    // Find the script path
+    let script_path = std::env::current_exe()
+        .ok()
+        .and_then(|p| p.parent().map(|p| p.to_path_buf()))
+        .unwrap_or_else(|| std::path::PathBuf::from("."))
+        .join("scripts")
+        .join("fanqie-auto.js");
+
+    let script_path = if script_path.exists() {
+        script_path
+    } else {
+        // Try current directory
+        std::path::PathBuf::from("scripts/fanqie-auto.js")
+    };
+
+    tracing::info!("Script path: {:?}", script_path);
+
+    if !script_path.exists() {
+        return Err(anyhow::anyhow!(
+            "Browser automation script not found at {:?}",
+            script_path
+        ));
+    }
+
+    // Run Node.js script
+    let output = std::process::Command::new("node")
+        .arg(&script_path)
+        .arg(action)
+        .arg(project_id)
+        .arg(title)
+        .arg(genre)
+        .arg(content)
+        .output()
+        .context("Failed to run browser automation script")?;
+
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    let stderr = String::from_utf8_lossy(&output.stderr);
+
+    tracing::info!("Browser output: {}", stdout);
+
+    if !output.status.success() {
+        tracing::warn!("Browser automation stderr: {}", stderr);
+    }
+
+    Ok(stdout.to_string())
+}
+
 /// Helper to load credentials from config
 pub fn load_credentials() -> Option<FanqieCredentials> {
     // Try to load from config file

@@ -1,0 +1,22 @@
+# AI Novel Agent Configuration
+
+# LLM Configuration
+[llm]
+provider = "qwen"
+api_key = ""
+
+# Fanqie Platform Configuration
+[fanqie]
+enabled = false
+username = "15858217054"
+password = "qweR123_"
+
+# Storage Configuration
+[storage]
+path = "./data"
+
+# Generation Settings
+[generation]
+default_word_count = 1000000
+words_per_chapter = 10000
+batch_size = 10

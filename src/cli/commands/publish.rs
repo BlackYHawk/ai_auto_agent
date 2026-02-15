@@ -2,9 +2,9 @@
 
 use anyhow::Result;
 use std::path::Path;
+use std::process::Command;
 use uuid::Uuid;
 use crate::models::NovelProject;
-use crate::services::fanqie::{FanqieClient, load_credentials};
 use crate::services::StorageService;
 
 pub async fn run(project_id: &str, action: &str) -> Result<()> {
@@ -16,97 +16,103 @@ pub async fn run(project_id: &str, action: &str) -> Result<()> {
     let storage = StorageService::new_project(".", project_uuid)?;
     let project: NovelProject = storage.load()?.ok_or_else(|| anyhow::anyhow!("Project not found"))?;
 
-    // Try to get Fanqie credentials
-    let credentials = load_credentials();
+    // Check if browser automation is requested
+    let use_browser = std::env::var("FANQIE_BROWSER").unwrap_or_default() == "true";
 
-    if let Some(creds) = credentials {
-        // Create authenticated client
-        let mut client = FanqieClient::with_credentials(creds.clone());
-
-        // Login
-        println!("\n=== Logging in to Fanqie ===");
-        if let Err(e) = client.login(&creds.username, &creds.password).await {
-            println!("⚠️ Login failed: {}, running in demo mode", e);
-            run_demo_mode(project_id, action, &project).await;
-            return Ok(());
-        }
-        println!("✅ Logged in as: {}", creds.username);
-
-        match action {
-            "create" => {
-                println!("\n=== Creating Novel on Fanqie ===");
-                let novel_id = client.create_novel(
-                    &project.name,
-                    &project.genre.to_string(),
-                    "AI generated novel", // Description
-                ).await.unwrap_or_else(|e| {
-                    println!("⚠️ API error: {}, using demo mode", e);
-                    format!("demo_novel_{}", project_id)
-                });
-                println!("✅ Novel created on Fanqie");
-                println!("   Novel ID: {}", novel_id);
-            }
-            "upload" => {
-                println!("\n=== Uploading Chapters to Fanqie ===");
-                // Load chapters from project directory
-                let chapters_dir = Path::new("projects").join(project_id).join("chapters");
-                if chapters_dir.exists() {
-                    let mut chapter_num = 1;
-                    for entry in std::fs::read_dir(&chapters_dir)? {
-                        let entry = entry?;
-                        if entry.path().extension().map(|e| e == "json").unwrap_or(false) {
-                            let _chapter_id = format!("chapter_{}_{}", project_id, chapter_num);
-                            println!("   Chapter {}: uploaded (demo)", chapter_num);
-                            chapter_num += 1;
-                        }
-                    }
-                    println!("✅ Chapters uploaded to Fanqie");
-                } else {
-                    println!("⚠️ No chapters found in project");
-                }
-            }
-            "submit" => {
-                println!("\n=== Submitting Chapters for Review ===");
-                println!("✅ Chapters submitted for review");
-            }
-            _ => {
-                println!("Unknown action: {}", action);
-            }
-        }
+    if use_browser {
+        run_browser_automation(action, project_id, &project.name, &project.genre.to_string()).await?;
     } else {
-        // No credentials - run in demo mode
-        println!("\n⚠️ No Fanqie credentials found");
-        println!("   Please set FANQIE_USERNAME and FANQIE_PASSWORD environment variables");
-        println!("   Or add credentials to config.toml:");
-        println!("   ```toml");
-        println!("   [fanqie]");
-        println!("   username = \"your_username\"");
-        println!("   password = \"your_password\"");
-        println!("   ```");
-        println!();
-
         run_demo_mode(project_id, action, &project).await;
     }
 
     Ok(())
 }
 
-async fn run_demo_mode(project_id: &str, action: &str, project: &NovelProject) {
+async fn run_browser_automation(action: &str, project_id: &str, title: &str, genre: &str) -> Result<()> {
+    println!("\n=== Running Browser Automation ===");
+
+    // Get credentials - check config first, then env vars
+    let (username, password) = get_credentials();
+
+    if username.is_empty() || password.is_empty() {
+        println!("⚠️ No credentials found, using demo mode");
+        println!("   Set FANQIE_USERNAME and FANQIE_PASSWORD env vars");
+        return Ok(());
+    }
+
+    // Find script path
+    let script_path = Path::new("scripts/fanqie-auto.js");
+    if !script_path.exists() {
+        println!("⚠️ Browser automation script not found");
+        return Ok(());
+    }
+
+    // Run node script
+    let output = Command::new("node")
+        .arg(script_path)
+        .arg(action)
+        .arg(project_id)
+        .arg(title)
+        .arg(genre)
+        .arg("")
+        .env("FANQIE_USERNAME", &username)
+        .env("FANQIE_PASSWORD", &password)
+        .output()?;
+
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    let stderr = String::from_utf8_lossy(&output.stderr);
+
+    println!("{}", stdout);
+
+    if !output.status.success() {
+        println!("⚠️ Browser automation warning: {}", stderr);
+    }
+
+    Ok(())
+}
+
+fn get_credentials() -> (String, String) {
+    // First check environment variables
+    let username = std::env::var("FANQIE_USERNAME").unwrap_or_default();
+    let password = std::env::var("FANQIE_PASSWORD").unwrap_or_default();
+
+    if !username.is_empty() && !password.is_empty() {
+        return (username, password);
+    }
+
+    // Then check config file
+    if let Ok(config) = std::fs::read_to_string("config.toml") {
+        if let Ok(parsed) = config.parse::<toml::Value>() {
+            let u = parsed.get("fanqie")
+                .and_then(|f| f.get("username"))
+                .and_then(|v| v.as_str())
+                .unwrap_or("");
+            let p = parsed.get("fanqie")
+                .and_then(|f| f.get("password"))
+                .and_then(|v| v.as_str())
+                .unwrap_or("");
+            if !u.is_empty() && !p.is_empty() {
+                return (u.to_string(), p.to_string());
+            }
+        }
+    }
+
+    (username, password)
+}
+
+async fn run_demo_mode(_project_id: &str, action: &str, project: &NovelProject) {
+    println!("\n=== Fanqie Publishing (Demo Mode) ===");
+    println!("Project: {}", project.name);
+
     match action {
         "create" => {
-            println!("\n=== Creating Novel on Fanqie (Demo) ===");
-            println!("Project: {}", project.name);
-            println!("Genre: {}", project.genre);
             println!("✅ Novel created on Fanqie (demo)");
+            println!("   To use real automation, set: FANQIE_BROWSER=true");
         }
         "upload" => {
-            println!("\n=== Uploading Chapters to Fanqie (Demo) ===");
-            println!("Project: {}", project_id);
             println!("✅ Chapters uploaded to Fanqie (demo)");
         }
         "submit" => {
-            println!("\n=== Submitting Chapters for Review (Demo) ===");
-            println!("Project: {}", project_id);
             println!("✅ Chapters submitted for review (demo)");
         }
         _ => {

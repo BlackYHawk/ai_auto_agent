@@ -24,3 +24,4 @@ Thumbs.db
 *.rs.bk
 *.rlib
 *.prof*
+node_modules/
