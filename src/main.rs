@@ -136,8 +136,32 @@ async fn main() -> Result<()> {
     match cli.command {
         Commands::New { name, genre, target } => {
             tracing::info!("Creating new project: {} ({})", name, genre);
-            // TODO: Implement new project creation
-            println!("Project created: {} (target: {} words)", name, target);
+
+            // Parse genre
+            let novel_genre = match genre.to_lowercase().as_str() {
+                "fantasy" => ai_novel_agent::models::NovelGenre::Fantasy,
+                "urban" => ai_novel_agent::models::NovelGenre::Urban,
+                "xianxia" => ai_novel_agent::models::NovelGenre::Xianxia,
+                "historical" => ai_novel_agent::models::NovelGenre::Historical,
+                "romance" => ai_novel_agent::models::NovelGenre::Romance,
+                "scifi" => ai_novel_agent::models::NovelGenre::Scifi,
+                "game" => ai_novel_agent::models::NovelGenre::Game,
+                "horror" => ai_novel_agent::models::NovelGenre::Horror,
+                _ => {
+                    println!("Unknown genre: {}, using Fantasy", genre);
+                    ai_novel_agent::models::NovelGenre::Fantasy
+                }
+            };
+
+            // Create project
+            let project = ai_novel_agent::models::NovelProject::new(name, novel_genre, target);
+
+            // Save project
+            let storage = ai_novel_agent::services::StorageService::new(".")?;
+            storage.save(&project)?;
+
+            println!("Project created: {} (target: {} words)", project.name, project.target_word_count);
+            println!("Project ID: {}", project.id);
         }
         Commands::Feasibility { project_id, genre } => {
             tracing::info!("Running feasibility analysis for: {}", project_id);
@@ -166,8 +190,7 @@ async fn main() -> Result<()> {
         }
         Commands::Check { project_id } => {
             tracing::info!("Checking consistency for: {}", project_id);
-            // TODO: Implement consistency check
-            println!("Consistency check complete");
+            ai_novel_agent::cli::commands::check::run(&project_id).await?;
         }
     }
 

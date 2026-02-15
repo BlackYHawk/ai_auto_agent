@@ -1,0 +1,11 @@
+{
+  "id": "28083940-9f6b-4157-92ce-81276c960d38",
+  "name": "我的修仙小说",
+  "genre": "xianxia",
+  "status": "draft",
+  "target_word_count": 1000000,
+  "fanqie_novel_id": null,
+  "publication_status": "notpublished",
+  "created_at": "2026-02-15T01:40:08.305314Z",
+  "updated_at": "2026-02-15T01:40:08.305314Z"
+}
