@@ -4,10 +4,13 @@ use anyhow::{Context, Result};
 use serde::{de::DeserializeOwned, Serialize};
 use std::fs;
 use std::path::PathBuf;
+use uuid::Uuid;
 
 /// Storage service for persisting data
+#[allow(dead_code)]
 pub struct StorageService {
     base_path: PathBuf,
+    project_id: Option<Uuid>,
 }
 
 impl StorageService {
@@ -21,12 +24,56 @@ impl StorageService {
                 .context("Failed to create storage directory")?;
         }
 
-        Ok(Self { base_path })
+        Ok(Self { base_path, project_id: None })
+    }
+
+    /// Create a new storage service for a specific project
+    pub fn new_project(base_path: impl Into<PathBuf>, project_id: Uuid) -> Result<Self> {
+        let base_path = base_path.into();
+        let project_path = base_path.join("projects").join(project_id.to_string());
+
+        // Create project directory structure
+        Self::create_project_dirs(&project_path)?;
+
+        Ok(Self {
+            base_path: project_path,
+            project_id: Some(project_id),
+        })
+    }
+
+    /// Create project directory structure
+    pub fn create_project_dirs(project_path: &PathBuf) -> Result<()> {
+        let dirs = ["analysis", "outline", "plans", "chapters"];
+
+        for dir in dirs {
+            let path = project_path.join(dir);
+            if !path.exists() {
+                fs::create_dir_all(&path)
+                    .context(format!("Failed to create directory: {:?}", path))?;
+            }
+        }
+
+        tracing::info!("Created project directories at {:?}", project_path);
+        Ok(())
+    }
+
+    /// Get base path
+    pub fn base_path(&self) -> &PathBuf {
+        &self.base_path
     }
 
     /// Get path for an entity
     fn entity_path<T: StorageKey>(&self) -> PathBuf {
-        self.base_path.join(T::storage_folder()).join(T::storage_filename())
+        let folder = T::storage_folder();
+        let filename = T::storage_filename();
+        // Add .json extension
+        let filename_with_ext = format!("{}.json", filename);
+        if folder.is_empty() {
+            // Save directly in base_path (for project.json)
+            self.base_path.join(filename_with_ext)
+        } else {
+            self.base_path.join(folder).join(filename_with_ext)
+        }
     }
 
     /// Save an entity
@@ -99,7 +146,7 @@ use crate::models::{NovelProject, NovelOutline, ChapterPlan, GeneratedChapter, F
 
 impl StorageKey for NovelProject {
     fn storage_folder() -> &'static str {
-        "projects"
+        ""  // Save directly in project folder
     }
 
     fn storage_filename() -> &'static str {
@@ -109,7 +156,7 @@ impl StorageKey for NovelProject {
 
 impl StorageKey for NovelOutline {
     fn storage_folder() -> &'static str {
-        "outlines"
+        "outline"
     }
 
     fn storage_filename() -> &'static str {
@@ -119,7 +166,7 @@ impl StorageKey for NovelOutline {
 
 impl StorageKey for ChapterPlan {
     fn storage_folder() -> &'static str {
-        "chapter_plans"
+        "plans"
     }
 
     fn storage_filename() -> &'static str {
@@ -139,11 +186,11 @@ impl StorageKey for GeneratedChapter {
 
 impl StorageKey for FeasibilityReport {
     fn storage_folder() -> &'static str {
-        "feasibility"
+        "analysis"
     }
 
     fn storage_filename() -> &'static str {
-        "report"
+        "feasibility"
     }
 }
 

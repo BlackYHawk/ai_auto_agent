@@ -1,22 +1,29 @@
 //! Plan Command
 
 use anyhow::Result;
+use uuid::Uuid;
 use crate::models::NovelOutline;
-use crate::services::ChapterPlanningService;
+use crate::services::{ChapterPlanningService, StorageService};
 
 pub async fn run(project_id: &str) -> Result<()> {
     tracing::info!("Generating chapter plan for: {}", project_id);
 
+    let project_uuid = Uuid::parse_str(project_id)?;
+
     // Create a mock outline for demonstration
     let outline = NovelOutline::new(
-        uuid::Uuid::new_v4(),
+        project_uuid,
         "一个少年踏上修仙之路".to_string(),
         "坚持与成长".to_string(),
         1_000_000,
     );
 
     let service = ChapterPlanningService::new();
-    let plan = service.generate_plan(uuid::Uuid::new_v4(), &outline).await?;
+    let plan = service.generate_plan(project_uuid, &outline).await?;
+
+    // Save plan to project directory
+    let storage = StorageService::new_project(".", project_uuid)?;
+    storage.save(&plan)?;
 
     println!("\n=== Chapter Plan ===");
     println!("Total Chapters: {}", plan.total_chapters);
@@ -37,6 +44,8 @@ pub async fn run(project_id: &str) -> Result<()> {
     if plan.total_chapters > 15 {
         println!("\n... and {} more chapters", plan.total_chapters - 15);
     }
+
+    println!("\nSaved to: projects/{}/plans/plan.json", project_id);
 
     Ok(())
 }

@@ -1,0 +1,53 @@
+{
+  "id": "f1fc3969-370b-4da3-841c-c22580d7514b",
+  "project_id": "396a827d-5af6-4779-a2c4-14135d145c64",
+  "genre": "fantasy",
+  "total_works_in_genre": 3000,
+  "average_views_top100": 1566666,
+  "average_favorites_top100": 78333,
+  "trend_score": 0.3,
+  "top_works": [
+    {
+      "title": "fantasy大作1",
+      "author": "作者A",
+      "views": 2000000,
+      "favorites": 100000,
+      "rating": 4.8,
+      "unique_elements": [],
+      "tags": []
+    },
+    {
+      "title": "fantasy大作2",
+      "author": "作者B",
+      "views": 1500000,
+      "favorites": 75000,
+      "rating": 4.6,
+      "unique_elements": [],
+      "tags": []
+    },
+    {
+      "title": "fantasy大作3",
+      "author": "作者C",
+      "views": 1200000,
+      "favorites": 60000,
+      "rating": 4.5,
+      "unique_elements": [],
+      "tags": []
+    }
+  ],
+  "market_gaps": [
+    "系统流",
+    "凡人流"
+  ],
+  "scores": {
+    "market_viability": 100,
+    "competition_level": "high",
+    "differentiation_potential": 80
+  },
+  "recommendation": "proceed",
+  "suggested_angles": [
+    "创新fantasy流派",
+    "融合fantasy与系统"
+  ],
+  "generated_at": "2026-02-15T10:38:45.424874Z"
+}

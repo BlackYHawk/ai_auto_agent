@@ -156,12 +156,13 @@ async fn main() -> Result<()> {
             // Create project
             let project = ai_novel_agent::models::NovelProject::new(name, novel_genre, target);
 
-            // Save project
-            let storage = ai_novel_agent::services::StorageService::new(".")?;
+            // Save project with directory structure
+            let storage = ai_novel_agent::services::StorageService::new_project(".", project.id)?;
             storage.save(&project)?;
 
             println!("Project created: {} (target: {} words)", project.name, project.target_word_count);
             println!("Project ID: {}", project.id);
+            println!("Project directory: projects/{}/", project.id);
         }
         Commands::Feasibility { project_id, genre } => {
             tracing::info!("Running feasibility analysis for: {}", project_id);

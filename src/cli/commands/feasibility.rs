@@ -1,8 +1,9 @@
 //! Feasibility Command
 
 use anyhow::Result;
+use uuid::Uuid;
 use crate::models::NovelGenre;
-use crate::services::FeasibilityService;
+use crate::services::{FeasibilityService, StorageService};
 
 /// Run feasibility analysis for a project
 pub async fn run(project_id: &str, genre_str: &str) -> Result<()> {
@@ -23,7 +24,15 @@ pub async fn run(project_id: &str, genre_str: &str) -> Result<()> {
 
     // Run analysis
     let service = FeasibilityService::new();
-    let report = service.analyze(genre).await?;
+    let mut report = service.analyze(genre).await?;
+
+    // Set project ID
+    let project_uuid = Uuid::parse_str(project_id)?;
+    report.project_id = project_uuid;
+
+    // Save report to project directory
+    let storage = StorageService::new_project(".", project_uuid)?;
+    storage.save(&report)?;
 
     // Display results
     println!("\n=== Feasibility Analysis Report ===");
@@ -44,6 +53,8 @@ pub async fn run(project_id: &str, genre_str: &str) -> Result<()> {
             println!("- {}", angle);
         }
     }
+
+    println!("\nSaved to: projects/{}/analysis/feasibility.json", project_id);
 
     Ok(())
 }
