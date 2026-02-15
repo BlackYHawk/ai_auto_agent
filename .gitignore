@@ -11,6 +11,7 @@ release/
 # Logs
 *.log
 .env*
+projects/
 
 # OS
 .DS_Store
