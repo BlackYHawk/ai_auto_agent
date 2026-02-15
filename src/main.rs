@@ -91,6 +91,9 @@ enum Commands {
         /// Project ID
         project_id: String,
     },
+
+    /// Launch GUI
+    Gui,
 }
 
 #[derive(Subcommand)]
@@ -193,7 +196,30 @@ async fn main() -> Result<()> {
             tracing::info!("Checking consistency for: {}", project_id);
             ai_novel_agent::cli::commands::check::run(&project_id).await?;
         }
+        Commands::Gui => {
+            tracing::info!("Launching GUI");
+            if let Err(e) = run_gui() {
+                eprintln!("GUI error: {}", e);
+            }
+            return Ok(());
+        }
     }
 
     Ok(())
+}
+
+fn run_gui() -> std::result::Result<(), eframe::Error> {
+    let options = eframe::NativeOptions {
+        viewport: egui::ViewportBuilder::default()
+            .with_inner_size([1200.0, 800.0])
+            .with_min_inner_size([800.0, 600.0])
+            .with_title("AI Novel Agent"),
+        ..Default::default()
+    };
+
+    eframe::run_native(
+        "AI Novel Agent",
+        options,
+        Box::new(|_cc| Ok(Box::new(ai_novel_agent::gui::app::NovelApp::default()))),
+    )
 }

@@ -24,7 +24,7 @@ pub async fn run(project_id: &str, chapters: &str) -> Result<()> {
     println!("Generating {} chapters...", chapter_nums.len());
 
     // Create mock LLM client
-    let llm_client = LlmClient::new(Box::new(crate::services::llm::QwenProvider::new("mock".to_string())));
+    let llm_client = LlmClient::new(Box::new(crate::services::llm::QwenProvider::new("mock".to_string(), None)));
     let service = GenerationService::new(llm_client);
 
     // Create storage for project

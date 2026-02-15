@@ -6,6 +6,7 @@ pub mod models;
 pub mod services;
 pub mod cli;
 pub mod config;
+pub mod gui;
 
 /// Re-export commonly used types
 pub use anyhow::Result;

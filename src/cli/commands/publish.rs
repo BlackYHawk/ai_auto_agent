@@ -35,19 +35,22 @@ async fn run_browser_automation(action: &str, project_id: &str, title: &str, gen
     let (username, password) = get_credentials();
 
     if username.is_empty() || password.is_empty() {
-        println!("⚠️ No credentials found, using demo mode");
-        println!("   Set FANQIE_USERNAME and FANQIE_PASSWORD env vars");
+        println!("⚠️ No credentials found, please set FANQIE_USERNAME and FANQIE_PASSWORD");
         return Ok(());
     }
 
-    // Find script path
-    let script_path = Path::new("scripts/fanqie-auto.js");
+    // Find script path - use record version for better debugging
+    let script_path = if Path::new("scripts/fanqie-auto-record.js").exists() {
+        Path::new("scripts/fanqie-auto-record.js")
+    } else {
+        Path::new("scripts/fanqie-auto.js")
+    };
     if !script_path.exists() {
         println!("⚠️ Browser automation script not found");
         return Ok(());
     }
 
-    // Run node script
+    // Run node script with video recording
     let output = Command::new("node")
         .arg(script_path)
         .arg(action)

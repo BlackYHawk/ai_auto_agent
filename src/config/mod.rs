@@ -23,7 +23,7 @@ pub struct Config {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct LlmConfig {
-    /// Provider: "qwen", "openai", "claude"
+    /// Provider: "qwen", "openai", "minimax"
     pub provider: String,
 
     /// API key
@@ -32,8 +32,14 @@ pub struct LlmConfig {
     /// Base URL for API (optional)
     pub base_url: Option<String>,
 
-    /// Default model
+    /// Model name (optional, provider-specific)
+    /// - qwen: qwen-turbo, qwen-plus, qwen-max
+    /// - minimax: abab6.5s-chat, abab6.5g-chat
+    /// - openai: gpt-4o, gpt-4o-mini, gpt-3.5-turbo
     pub model: Option<String>,
+
+    /// Group ID (required for MiniMax)
+    pub group_id: Option<String>,
 
     /// Temperature for generation
     #[serde(default = "default_temperature")]
@@ -110,6 +116,7 @@ impl Default for Config {
                 api_key: std::env::var("LLM_API_KEY").unwrap_or_default(),
                 base_url: None,
                 model: None,
+                group_id: None,
                 temperature: 0.8,
                 max_tokens: 4096,
             },

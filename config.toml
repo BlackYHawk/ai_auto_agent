@@ -1,9 +1,26 @@
 # AI Novel Agent Configuration
 
 # LLM Configuration
+# Supported providers: qwen, minimax, openai
 [llm]
-provider = "qwen"
-api_key = ""
+# Provider: "qwen" (通义千问), "minimax" (MiniMax), "openai" (GPT)
+provider = "minimax"
+
+# API Key - set via environment variable or here
+api_key = "sk-api-mez8J1W5OTNn419jwoltY9T42MiU8WcDCm1rYtqDm__ySj9sYlAxjamBHSJmdBJH88y_emoRcl-t5G8Kh_E0omDzqZzXXfpKWRr9mDKjG-sFOuqj1USjLTc"
+
+# Model name (optional, provider-specific)
+# - qwen: qwen-turbo, qwen-plus, qwen-max
+# - minimax: abab6.5s-chat (MiniMax 2.5), abab6.5g-chat
+# - openai: gpt-4o, gpt-4o-mini, gpt-3.5-turbo
+model = "abab6.5s-chat"
+
+# Group ID (required for MiniMax)
+group_id = "1946837978873602236"
+
+# Generation parameters
+temperature = 0.8
+max_tokens = 4096
 
 # Fanqie Platform Configuration
 [fanqie]

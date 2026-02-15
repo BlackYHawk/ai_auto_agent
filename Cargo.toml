@@ -44,6 +44,10 @@ futures = "0.3"
 # CLI
 clap = { version = "4.4", features = ["derive"] }
 
+# GUI
+egui = "0.29"
+eframe = "0.29"
+
 # For vector storage (future phase)
 # qdrant-client = "1.0"
 
