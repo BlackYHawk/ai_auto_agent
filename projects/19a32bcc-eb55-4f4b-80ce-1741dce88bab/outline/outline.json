@@ -1,0 +1,114 @@
+{
+  "id": "ad5e5071-afde-41c2-b376-d77ed3580ebb",
+  "project_id": "19a32bcc-eb55-4f4b-80ce-1741dce88bab",
+  "premise": "少年意外获得仙丹，踏上修仙之路",
+  "theme": "成长与挑战",
+  "target_word_count": 1000000,
+  "arcs": [
+    {
+      "id": "1dfe56cd-839f-483c-8919-18c438f655df",
+      "name": "序章与起源",
+      "start_chapter": 1,
+      "end_chapter": 33,
+      "summary": "主角经历重大事件,开启冒险之旅",
+      "key_events": [
+        "主角身世揭晓",
+        "获得能力或机遇"
+      ],
+      "climax": "首次重大胜利"
+    },
+    {
+      "id": "99f2f38f-33d8-479d-9811-0183d4d85ecc",
+      "name": "成长与挑战",
+      "start_chapter": 34,
+      "end_chapter": 66,
+      "summary": "主角面对更强的敌人,不断成长",
+      "key_events": [
+        "遇见导师",
+        "获得珍贵资源",
+        "经历重大挫折"
+      ],
+      "climax": "击败强劲对手"
+    },
+    {
+      "id": "9cef3636-8c60-4d8f-95e7-6e95243117dd",
+      "name": "终极对决",
+      "start_chapter": 67,
+      "end_chapter": 100,
+      "summary": "最终决战,解决最大威胁",
+      "key_events": [
+        "真相大白",
+        "最终准备"
+      ],
+      "climax": "终极对决与胜利"
+    }
+  ],
+  "protagonist": {
+    "id": "9894c61e-0d10-4b4e-9455-5ff6fa01580e",
+    "name": "叶凡",
+    "role": "protagonist",
+    "description": "故事的主角,经历重大成长",
+    "personality_traits": [
+      "坚韧",
+      "机智",
+      "重情义"
+    ],
+    "arc_description": "从弱小到强大,从迷茫到坚定",
+    "key_moments": [
+      {
+        "chapter": 1,
+        "description": "故事开始",
+        "development": "展现潜力"
+      }
+    ]
+  },
+  "supporting_characters": [
+    {
+      "id": "3f17e816-5bf1-496d-ab50-3c7dbe081781",
+      "name": "导师/贵人",
+      "role": "supporting",
+      "description": "帮助主角成长的人物",
+      "personality_traits": [
+        "智慧",
+        "神秘"
+      ],
+      "arc_description": "传授技能,提供帮助",
+      "key_moments": []
+    },
+    {
+      "id": "43578aa4-ebae-40d3-9dcb-cbc1f84b2801",
+      "name": "对手/敌人",
+      "role": "antagonist",
+      "description": "主角的主要对手",
+      "personality_traits": [
+        "强大",
+        "阴险"
+      ],
+      "arc_description": "给主角制造麻烦,最终被打败",
+      "key_moments": []
+    }
+  ],
+  "world_settings": {
+    "name": "玄幻世界",
+    "world_type": "fantasy",
+    "description": "Fantasy类型的小说世界",
+    "rules": [
+      "修炼体系",
+      "灵石为基础"
+    ],
+    "locations": [
+      {
+        "name": "主要场景",
+        "description": "故事主要发生的地点",
+        "importance": "major"
+      }
+    ]
+  },
+  "sensitive_content_check": {
+    "passed": true,
+    "issues": []
+  },
+  "status": "draft",
+  "created_at": "2026-02-15T11:15:59.552579Z",
+  "updated_at": "2026-02-15T11:15:59.552579Z"
+}

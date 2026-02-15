@@ -1,14 +1,14 @@
 {
-  "id": "f1fc3969-370b-4da3-841c-c22580d7514b",
-  "project_id": "396a827d-5af6-4779-a2c4-14135d145c64",
-  "genre": "fantasy",
+  "id": "37de7787-acf9-4527-b018-b579f8f0c200",
+  "project_id": "19a32bcc-eb55-4f4b-80ce-1741dce88bab",
+  "genre": "xianxia",
   "total_works_in_genre": 3000,
   "average_views_top100": 1566666,
   "average_favorites_top100": 78333,
   "trend_score": 0.3,
   "top_works": [
     {
-      "title": "fantasy大作1",
+      "title": "xianxia大作1",
       "author": "作者A",
       "views": 2000000,
       "favorites": 100000,
@@ -17,7 +17,7 @@
       "tags": []
     },
     {
-      "title": "fantasy大作2",
+      "title": "xianxia大作2",
       "author": "作者B",
       "views": 1500000,
       "favorites": 75000,
@@ -26,7 +26,7 @@
       "tags": []
     },
     {
-      "title": "fantasy大作3",
+      "title": "xianxia大作3",
       "author": "作者C",
       "views": 1200000,
       "favorites": 60000,
@@ -46,8 +46,8 @@
   },
   "recommendation": "proceed",
   "suggested_angles": [
-    "创新fantasy流派",
-    "融合fantasy与系统"
+    "创新xianxia流派",
+    "融合xianxia与系统"
   ],
-  "generated_at": "2026-02-15T10:38:45.424874Z"
+  "generated_at": "2026-02-15T11:15:13.936152Z"
 }
