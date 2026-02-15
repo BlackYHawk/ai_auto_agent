@@ -38,7 +38,7 @@ toml = "0.8"
 # Futures
 futures = "0.3"
 
-# For browser automation (future phase)
+# For browser automation
 # playwright = "0.1"
 
 # CLI
