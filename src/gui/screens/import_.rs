@@ -34,12 +34,53 @@ pub fn show(ui: &mut Ui, app: &mut NovelApp) {
         ui.label(RichText::new("步骤1: 选择文件").strong());
         ui.add_space(10.0);
 
-        // 模拟文件选择按钮
+        // 显示当前选择的文件
+        if !app.import_form.file_name.is_empty() {
+            ui.horizontal(|ui| {
+                ui.label("已选择: ");
+                ui.label(&app.import_form.file_name);
+            });
+            ui.add_space(5.0);
+        }
+
+        // 文件选择按钮
         ui.horizontal(|ui| {
             if ui.button("选择TXT文件").clicked() {
-                // TODO: 实现文件选择对话框
-                // 使用 rfd crate 实现原生文件选择
-                app.set_error("请在控制台使用命令行导入，或将TXT文件放入项目目录".to_string());
+                // 使用 rfd 打开文件对话框
+                let picker = rfd::FileDialog::new()
+                    .add_filter("Text files", &["txt"])
+                    .set_title("选择小说文件");
+
+                if let Some(path_buf) = picker.pick_file() {
+                    let path_buf: std::path::PathBuf = path_buf;
+                    let path_str = path_buf.to_string_lossy().to_string();
+                    app.import_form.file_path = path_str.clone();
+
+                    // 获取文件名
+                    if let Some(name) = path_buf.file_name() {
+                        let name: &std::ffi::OsStr = name;
+                        app.import_form.file_name = name.to_string_lossy().to_string();
+                    }
+
+                    // 读取文件内容预览
+                    if let Ok(content) = std::fs::read_to_string(&path_str) {
+                        // 预览前1000个字符
+                        let preview = if content.len() > 1000 {
+                            format!("{}...", &content[..1000])
+                        } else {
+                            content.clone()
+                        };
+                        app.import_form.content_preview = preview;
+
+                        // 统计章节数 (简化版)
+                        let chapter_count = content
+                            .lines()
+                            .filter(|line| line.trim().starts_with("第") && line.contains("章"))
+                            .count()
+                            .max(1);
+                        app.import_form.chapter_count = chapter_count;
+                    }
+                }
             }
         });
 
@@ -54,6 +95,15 @@ pub fn show(ui: &mut Ui, app: &mut NovelApp) {
         ui.label("项目名称:");
         ui.text_edit_singleline(&mut app.new_project_form.name);
 
+        // 自动填充项目名称
+        if app.new_project_form.name.is_empty() && !app.import_form.file_name.is_empty() {
+            // 去除文件扩展名
+            let name = app.import_form.file_name
+                .trim_end_matches(".txt")
+                .trim_end_matches(".TXT");
+            app.new_project_form.name = name.to_string();
+        }
+
         ui.add_space(10.0);
 
         // 导入预览
@@ -61,13 +111,16 @@ pub fn show(ui: &mut Ui, app: &mut NovelApp) {
         ui.add_space(10.0);
 
         ScrollArea::vertical().max_height(200.0).show(ui, |ui| {
-            ui.label("暂无文件预览");
-            ui.label("请选择要导入的TXT文件");
-            ui.label("");
-            ui.label("提示:");
-            ui.label("- 文件名将被用作项目名称");
-            ui.label("- 系统会自动检测章节标题");
-            ui.label("- 支持中英文章节标题格式");
+            if app.import_form.file_name.is_empty() {
+                ui.label("暂无文件预览");
+                ui.label("请选择要导入的TXT文件");
+            } else {
+                ui.label(format!("文件: {}", app.import_form.file_name));
+                ui.label(format!("预估章节数: {}", app.import_form.chapter_count));
+                ui.add_space(10.0);
+                ui.label("内容预览:");
+                ui.label(&app.import_form.content_preview);
+            }
         });
 
         ui.add_space(20.0);
@@ -76,11 +129,23 @@ pub fn show(ui: &mut Ui, app: &mut NovelApp) {
 
         // 导入按钮
         if ui.button("开始导入").clicked() {
-            if app.new_project_form.name.is_empty() {
+            if app.import_form.file_path.is_empty() {
                 app.set_error("请先选择要导入的文件".to_string());
+            } else if app.new_project_form.name.is_empty() {
+                app.set_error("请输入项目名称".to_string());
             } else {
-                // 模拟导入流程
-                app.set_error("导入功能开发中，请使用CLI工具导入".to_string());
+                // 执行导入
+                match app.import_novel() {
+                    Ok(_) => {
+                        // 重置表单
+                        app.import_form = Default::default();
+                        app.new_project_form = Default::default();
+                        app.navigate_to(Screen::Projects);
+                    }
+                    Err(e) => {
+                        app.set_error(format!("导入失败: {}", e));
+                    }
+                }
             }
         }
 
@@ -91,10 +156,10 @@ pub fn show(ui: &mut Ui, app: &mut NovelApp) {
         // 使用说明
         ui.label(RichText::new("使用方法").strong());
         ui.add_space(5.0);
-        ui.label("1. 将已有的TXT小说文件准备好");
-        ui.label("2. 点击\"选择TXT文件\"按钮");
+        ui.label("1. 点击\"选择TXT文件\"按钮");
+        ui.label("2. 选择要导入的小说文件");
         ui.label("3. 系统会自动解析章节结构");
-        ui.label("4. 设置项目信息并导入");
+        ui.label("4. 设置项目名称并导入");
         ui.label("5. 导入后可继续在GUI中编辑生成");
     });
 }

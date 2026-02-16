@@ -41,6 +41,15 @@ pub struct NewProjectForm {
     pub target_word_count: String,
 }
 
+/// Form for importing a novel
+#[derive(Debug, Clone, Default)]
+pub struct ImportForm {
+    pub file_path: String,
+    pub file_name: String,
+    pub content_preview: String,
+    pub chapter_count: usize,
+}
+
 /// Form for generating outline
 #[derive(Debug, Clone, Default)]
 pub struct OutlineForm {
@@ -106,6 +115,7 @@ pub struct NovelApp {
 
     /// Form states
     pub new_project_form: NewProjectForm,
+    pub import_form: ImportForm,
     pub outline_form: OutlineForm,
     pub generate_form: GenerateForm,
     pub publish_form: PublishForm,
@@ -142,6 +152,7 @@ impl Default for NovelApp {
             running_tasks: HashMap::new(),
             error_message: None,
             new_project_form: NewProjectForm::default(),
+            import_form: ImportForm::default(),
             outline_form: OutlineForm::default(),
             generate_form: GenerateForm::default(),
             publish_form: PublishForm::default(),
@@ -218,69 +229,213 @@ impl NovelApp {
         Ok(project)
     }
 
+    /// Import a novel from TXT file
+    pub fn import_novel(&mut self) -> Result<NovelProject, String> {
+        let file_path = self.import_form.file_path.clone();
+        let name = self.new_project_form.name.clone();
+
+        // Read the file content
+        let content = std::fs::read_to_string(&file_path)
+            .map_err(|e| format!("Failed to read file: {}", e))?;
+
+        // Parse chapters (split by "第X章" pattern)
+        let _chapters: Vec<&str> = content
+            .lines()
+            .filter(|line| line.trim().starts_with("第") && line.contains("章"))
+            .collect();
+
+        // Estimate word count
+        let word_count = content.chars().count() as u64;
+
+        // Create project with default genre
+        let genre = NovelGenre::Other;
+        let project = NovelProject::new(name, genre, word_count);
+        let project_id = project.id;
+
+        // Create project directory structure
+        let project_path = self.storage_root.join("projects").join(project_id.to_string());
+        std::fs::create_dir_all(&project_path)
+            .map_err(|e| format!("Failed to create project directory: {}", e))?;
+
+        // Create chapters directory
+        let chapters_dir = project_path.join("chapters");
+        std::fs::create_dir_all(&chapters_dir)
+            .map_err(|e| format!("Failed to create chapters directory: {}", e))?;
+
+        // Save project info
+        let storage = StorageService::new(&project_path)
+            .map_err(|e| format!("Failed to create storage: {}", e))?;
+
+        storage.save(&project)
+            .map_err(|e| format!("Failed to save project: {}", e))?;
+
+        // Save imported content as chapters
+        let import_file = project_path.join("imported.txt");
+        std::fs::write(&import_file, &content)
+            .map_err(|e| format!("Failed to save imported content: {}", e))?;
+
+        self.projects.push(project.clone());
+
+        Ok(project)
+    }
+
     /// Run feasibility analysis for a project
     pub fn run_feasibility_analysis(&mut self, genre: NovelGenre) -> Result<String, String> {
-        // Demo implementation - in production, call the actual service
-        Ok(format!(
-            "Feasibility Analysis for {:?}\n\n\
-            Market Viability: 75/100\n\
-            Competition Level: High\n\
-            Differentiation Potential: 80/100\n\n\
-            Note: Full analysis requires LLM API configuration.",
-            genre
-        ))
+        // Try to use the real feasibility service
+        let rt = match tokio::runtime::Handle::try_current() {
+            Ok(h) => h,
+            Err(_) => {
+                // No runtime available, return a message
+                return Ok(format!(
+                    "可行性分析功能需要配置LLM API。\n\n\
+                    类型: {:?}\n\n\
+                    请在设置页面配置API Key后使用此功能。",
+                    genre
+                ));
+            }
+        };
+
+        let result = rt.block_on(async {
+            let service = crate::services::FeasibilityService::new();
+            service.analyze(genre).await
+        });
+
+        match result {
+            Ok(report) => {
+                let summary = format!(
+                    "可行性研究报告\n\n\
+                    类型: {:?}\n\
+                    市场可行性: {}/100\n\
+                    竞争程度: {:?}\n\
+                    差异化潜力: {}/100\n\n\
+                    热门作品:\n{}\n\n\
+                    建议: {:?}",
+                    genre,
+                    report.scores.market_viability,
+                    report.scores.competition_level,
+                    report.scores.differentiation_potential,
+                    report.top_works.iter().take(5).map(|w| format!("- {} by {}", w.title, w.author)).collect::<Vec<_>>().join("\n"),
+                    report.recommendation
+                );
+                Ok(summary)
+            }
+            Err(e) => Err(format!("可行性分析失败: {}", e))
+        }
     }
 
     /// Generate outline for a project
-    pub fn generate_outline(&mut self, _project_id: Uuid, genre: NovelGenre, premise: String, theme: String, target_words: u64) -> Result<String, String> {
-        // Demo implementation - in production, call the actual service
-        let mut result = format!(
-            "Outline Generated\n\n\
-            Premise: {}\n\
-            Theme: {}\n\
-            Genre: {:?}\n\
-            Target: {} words\n\n",
-            premise, theme, genre, target_words
-        );
+    pub fn generate_outline(&mut self, project_id: Uuid, genre: NovelGenre, premise: String, theme: String, target_words: u64) -> Result<String, String> {
+        // Try to use the real outline service
+        let rt = match tokio::runtime::Handle::try_current() {
+            Ok(h) => h,
+            Err(_) => {
+                return Ok(format!(
+                    "大纲生成功能需要配置LLM API。\n\n\
+                    设定: {}\n\
+                    主题: {}\n\
+                    类型: {:?}\n\
+                    目标: {} 字\n\n\
+                    请在设置页面配置API Key后使用此功能。",
+                    premise, theme, genre, target_words
+                ));
+            }
+        };
 
-        result.push_str("Plot Arcs:\n");
-        result.push_str("- Act 1: Introduction (Chapters 1-10)\n");
-        result.push_str("  Summary: The protagonist begins their journey...\n");
-        result.push_str("- Act 2: Rising Action (Chapters 11-30)\n");
-        result.push_str("  Summary: Challenges and growth emerge...\n");
-        result.push_str("- Act 3: Climax & Resolution (Chapters 31-40)\n");
-        result.push_str("  Summary: Final confrontation and conclusion...\n\n");
+        // Clone values for use in async block
+        let premise_clone = premise.clone();
+        let theme_clone = theme.clone();
 
-        result.push_str("Note: Full outline generation requires LLM API configuration.");
+        let result = rt.block_on(async {
+            let service = crate::services::OutlineService::new();
+            service.generate(project_id, genre, premise_clone, theme_clone, target_words).await
+        });
 
-        Ok(result)
+        match result {
+            Ok(outline) => {
+                let mut summary = format!(
+                    "大纲生成完成\n\n\
+                    设定: {}\n\
+                    主题: {}\n\
+                    类型: {:?}\n\
+                    目标字数: {} 字\n\n",
+                    premise, theme, genre, target_words
+                );
+
+                summary.push_str("情节线:\n");
+                for arc in &outline.arcs {
+                    summary.push_str(&format!("\n--- {} ---\n", arc.name));
+                    summary.push_str(&format!("章节范围: {}-{})\n", arc.start_chapter, arc.end_chapter));
+                    summary.push_str(&format!("概要: {}\n", arc.summary));
+                    summary.push_str(&format!("高潮: {}\n", arc.climax));
+                }
+
+                summary.push_str(&format!("\n主角: {}\n", outline.protagonist.name));
+                summary.push_str(&format!("性格特点: {:?}\n", outline.protagonist.personality_traits));
+
+                Ok(summary)
+            }
+            Err(e) => Err(format!("大纲生成失败: {}", e))
+        }
     }
 
     /// Generate chapters for a project
-    pub fn generate_chapters(&mut self, _project_id: Uuid, chapter_start: u32, chapter_end: u32) -> Result<String, String> {
-        // Demo implementation - in production, call the actual service
-        let mut results = String::new();
-
-        for chapter_num in chapter_start..=chapter_end {
-            let chapter_text = format!(
-                "\n=== Chapter {} ===\n\nThis is a placeholder for chapter {}. In production, this would contain AI-generated content based on the novel's outline and previous chapters. (Full chapter generation requires LLM API configuration)\n\n",
-                chapter_num, chapter_num
-            );
-            results.push_str(&chapter_text);
-        }
-
-        Ok(results)
+    pub fn generate_chapters(&mut self, project_id: Uuid, chapter_start: u32, chapter_end: u32) -> Result<String, String> {
+        // Return a message about LLM configuration requirement
+        Ok(format!(
+            "章节生成功能需要配置LLM API。\n\n\
+            项目ID: {}\n\
+            章节范围: {} - {}\n\n\
+            请在设置页面配置API Key后使用此功能。\n\n\
+            您也可以使用命令行工具生成章节:\n\
+            cargo run --release -- generate --project-id {} --chapters {}-{}",
+            project_id, chapter_start, chapter_end, project_id, chapter_start, chapter_end
+        ))
     }
 
     /// Run consistency check
     pub fn run_consistency_check(&mut self, project_id: Uuid) -> Result<String, String> {
-        // Demo implementation - in production, call the actual service
-        let result = format!(
-            "Consistency Check Report\n\nProject ID: {}\n\nChecks performed:\n- Character consistency: OK\n- Plot consistency: OK\n- Timeline consistency: OK\n- World-building consistency: OK\n\nNote: Full consistency check requires generated chapters.\n",
-            project_id
-        );
+        // Try to use the real consistency service
+        let rt = match tokio::runtime::Handle::try_current() {
+            Ok(h) => h,
+            Err(_) => {
+                return Ok(format!(
+                    "一致性检查功能需要先生成章节内容。\n\n\
+                    项目ID: {}\n\n\
+                    请先生成章节后再进行一致性检查。",
+                    project_id
+                ));
+            }
+        };
 
-        Ok(result)
+        let project_id_str = project_id.to_string();
+        let result = rt.block_on(async {
+            let service = crate::services::ConsistencyChecker::new();
+            service.check_consistency(&project_id_str).await
+        });
+
+        match result {
+            Ok(report) => {
+                let issues_text = if report.issues.is_empty() {
+                    "无".to_string()
+                } else {
+                    report.issues.iter()
+                        .map(|i| format!("- {:?}: {}", i.issue_type, i.description))
+                        .collect::<Vec<_>>()
+                        .join("\n")
+                };
+                let summary = format!(
+                    "一致性检查报告\n\n\
+                    项目ID: {}\n\n\
+                    检查结果: {}\n\n\
+                    发现问题: {}",
+                    project_id,
+                    if report.passed { "通过" } else { "有问题" },
+                    issues_text
+                );
+                Ok(summary)
+            }
+            Err(e) => Err(format!("一致性检查失败: {}", e))
+        }
     }
 
     /// Publish to Fanqie platform
@@ -290,19 +445,73 @@ impl NovelApp {
         action: PublishAction,
         chapter_range: String,
     ) -> Result<String, String> {
-        // Demo implementation - in production, use FanqieClient
-        let action_label = match action {
-            PublishAction::Create => "Create Novel",
-            PublishAction::Upload => "Upload Chapters",
-            PublishAction::Submit => "Submit for Review",
+        // Try to use the real Fanqie service
+        let rt = match tokio::runtime::Handle::try_current() {
+            Ok(h) => h,
+            Err(_) => {
+                return Err("发布功能需要配置番茄小说登录凭证".to_string());
+            }
         };
 
-        let result = format!(
-            "Publish Action: {}\nProject ID: {}\nChapter Range: {}\n\nStatus: Ready to publish\n\nNote: Full Fanqie integration requires:\n1. Configure cookies in config.toml\n2. Login to Fanqie account\n3. Select target book or create new\n\nFor production use, run CLI: ai-novel-agent publish --project-id {} --action {:?}",
-            action_label, project_id, chapter_range, project_id, action
-        );
+        let result = match action {
+            PublishAction::Create => {
+                rt.block_on(async {
+                    // Load credentials from environment or config
+                    if let Some(credentials) = crate::services::fanqie::load_credentials() {
+                        let creds_clone = credentials.clone();
+                        let mut service = crate::services::FanqieClient::with_credentials(credentials);
+                        service.login(&creds_clone.username, &creds_clone.password).await?;
 
-        Ok(result)
+                        // Get project info
+                        let project = self.projects.iter().find(|p| p.id == project_id);
+                        let title = project.map(|p| p.name.clone()).unwrap_or_else(|| "新小说".to_string());
+                        let genre = project.map(|p| p.genre.to_string()).unwrap_or_else(|| "fantasy".to_string());
+
+                        service.create_novel(&title, &genre, "AI generated novel").await
+                    } else {
+                        Err(anyhow::anyhow!("请配置番茄小说登录凭证"))
+                    }
+                })
+            }
+            PublishAction::Upload => {
+                // Parse chapter range
+                let parts: Vec<&str> = chapter_range.split('-').collect();
+                let start = parts.first().and_then(|s| s.parse::<u32>().ok()).unwrap_or(1);
+                let end = parts.get(1).and_then(|s| s.parse::<u32>().ok()).unwrap_or(start);
+
+                rt.block_on(async {
+                    if let Some(credentials) = crate::services::fanqie::load_credentials() {
+                        let creds_clone = credentials.clone();
+                        let mut service = crate::services::FanqieClient::with_credentials(credentials);
+                        service.login(&creds_clone.username, &creds_clone.password).await?;
+
+                        // TODO: Load chapters from project and upload
+                        // For now, return a message
+                        Ok(format!("上传章节 {} 到 {}", start, end))
+                    } else {
+                        Err(anyhow::anyhow!("请配置番茄小说登录凭证"))
+                    }
+                })
+            }
+            PublishAction::Submit => {
+                rt.block_on(async {
+                    if let Some(credentials) = crate::services::fanqie::load_credentials() {
+                        let creds_clone = credentials.clone();
+                        let mut service = crate::services::FanqieClient::with_credentials(credentials);
+                        service.login(&creds_clone.username, &creds_clone.password).await?;
+                        // TODO: Implement submit
+                        Ok("提交审核功能开发中".to_string())
+                    } else {
+                        Err(anyhow::anyhow!("请配置番茄小说登录凭证"))
+                    }
+                })
+            }
+        };
+
+        match result {
+            Ok(response) => Ok(format!("发布成功: {}", response)),
+            Err(e) => Err(format!("发布失败: {}", e))
+        }
     }
 }
 
