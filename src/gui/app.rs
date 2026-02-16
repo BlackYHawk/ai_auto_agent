@@ -19,6 +19,9 @@ pub enum Screen {
     Generate,
     Publish,
     Check,
+    Chapter,
+    Import,
+    Settings,
 }
 
 /// Task state for async operations
@@ -70,9 +73,9 @@ pub enum PublishAction {
 impl PublishAction {
     pub fn label(&self) -> &'static str {
         match self {
-            PublishAction::Create => "Create Book",
-            PublishAction::Upload => "Upload Chapters",
-            PublishAction::Submit => "Submit for Review",
+            PublishAction::Create => "创建小说",
+            PublishAction::Upload => "上传章节",
+            PublishAction::Submit => "提交审核",
         }
     }
 }
@@ -91,6 +94,9 @@ pub struct NovelApp {
 
     /// Currently selected project ID
     pub selected_project_id: Option<Uuid>,
+
+    /// Currently selected chapter number
+    pub selected_chapter_number: Option<u32>,
 
     /// Running async tasks
     pub running_tasks: HashMap<String, TaskState>,
@@ -132,6 +138,7 @@ impl Default for NovelApp {
             storage_root,
             projects: Vec::new(),
             selected_project_id: None,
+            selected_chapter_number: None,
             running_tasks: HashMap::new(),
             error_message: None,
             new_project_form: NewProjectForm::default(),
@@ -173,27 +180,16 @@ impl NovelApp {
     pub fn load_projects(&mut self) -> Result<(), String> {
         self.projects.clear();
 
-        let storage_path = &self.storage_root;
-        if !storage_path.exists() {
-            return Ok(());
-        }
-
-        let entries = std::fs::read_dir(storage_path)
-            .map_err(|e| format!("Failed to read storage directory: {}", e))?;
-
-        for entry in entries.flatten() {
-            let path = entry.path();
-            if path.is_dir() {
-                // Try to load project from this folder
-                if let Ok(storage) = StorageService::new(&path) {
-                    if let Ok(Some(project)) = storage.load::<NovelProject>() {
-                        self.projects.push(project);
-                    }
-                }
+        // Use StorageService::list_projects to load all projects
+        match StorageService::list_projects(&self.storage_root) {
+            Ok(projects) => {
+                self.projects = projects;
+                Ok(())
+            }
+            Err(e) => {
+                Err(format!("Failed to load projects: {}", e))
             }
         }
-
-        Ok(())
     }
 
     /// Create a new project
@@ -343,6 +339,15 @@ impl App for NovelApp {
                 }
                 Screen::Check => {
                     crate::gui::screens::check::show(ui, self);
+                }
+                Screen::Chapter => {
+                    crate::gui::screens::chapter::show(ui, self);
+                }
+                Screen::Import => {
+                    crate::gui::screens::import_::show(ui, self);
+                }
+                Screen::Settings => {
+                    crate::gui::screens::settings::show(ui, self);
                 }
             }
         });

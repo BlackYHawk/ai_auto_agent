@@ -1,18 +1,15 @@
 # AI Novel Agent Configuration
-# NOTE: For security, sensitive data (API keys, passwords) should be:
-# 1. Stored in config.local.toml (not tracked by git)
-# 2. Or set via environment variables:
-#    - LLM_API_KEY
-#    - FANQIE_COOKIE
-# See config.toml.example for reference
+# Copy this file to config.local.toml and fill in your actual values
 
 # LLM Configuration
+# Supported providers: qwen, minimax, openai
 [llm]
 # Provider: "qwen" (通义千问), "minimax" (MiniMax), "openai" (GPT)
 provider = "minimax"
 
-# API Key - set via LLM_API_KEY environment variable for security
-api_key = ""
+# API Key - set via environment variable or here
+# For security, recommended to set via LLM_API_KEY environment variable
+api_key = "YOUR_API_KEY_HERE"
 
 # Model name (optional, provider-specific)
 # - qwen: qwen-turbo, qwen-plus, qwen-max
@@ -20,16 +17,19 @@ api_key = ""
 # - openai: gpt-4o, gpt-4o-mini, gpt-3.5-turbo
 model = "abab6.5s-chat"
 
-# Group ID (required for MiniMax) - set via environment variable
-group_id = ""
+# Group ID (required for MiniMax)
+group_id = "YOUR_GROUP_ID_HERE"
 
 # Generation parameters
 temperature = 0.8
 max_tokens = 4096
 
 # Fanqie Platform Configuration
+# For security, recommended to set via FANQIE_COOKIE environment variable
 [fanqie]
 enabled = false
+# cookie = "YOUR_COOKIE_HERE"
+# username = "YOUR_USERNAME_HERE"
 
 # Storage Configuration
 [storage]

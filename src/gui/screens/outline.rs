@@ -1,44 +1,44 @@
-//! Outline Generation Screen
+//! 大纲生成页面
 
 use egui::{ScrollArea, Ui};
 
 use crate::gui::app::{NovelApp, Screen};
 
-/// Show the outline generation screen
+/// 显示大纲生成页面
 pub fn show(ui: &mut Ui, app: &mut NovelApp) {
     egui::SidePanel::left("left_panel").min_width(200.0).show_inside(ui, |ui| {
         ui.heading("AI Novel Agent");
 
         ui.separator();
 
-        if ui.button("← Back").clicked() {
+        if ui.button("← 返回").clicked() {
             app.navigate_to(Screen::ProjectDetail);
         }
     });
 
     egui::CentralPanel::default().show_inside(ui, |ui| {
-        ui.heading("Generate Outline");
+        ui.heading("生成大纲");
 
         ui.separator();
 
-        // Premise input
-        ui.label("Premise:");
+        // 小说设定输入
+        ui.label("小说设定:");
         ui.text_edit_multiline(&mut app.outline_form.premise);
 
         ui.separator();
 
-        // Theme input
-        ui.label("Theme (optional):");
+        // 主题输入
+        ui.label("主题 (可选):");
         ui.text_edit_singleline(&mut app.outline_form.theme);
 
         ui.separator();
 
-        // Generate button
-        if ui.button("Generate Outline").clicked() {
+        // 生成按钮
+        if ui.button("生成大纲").clicked() {
             if app.outline_form.premise.is_empty() {
-                app.set_error("Please enter a premise".to_string());
+                app.set_error("请输入小说设定".to_string());
             } else {
-                // Get selected project for genre
+                // 获取选中项目的类型
                 let genre = app.selected_project()
                     .map(|p| p.genre)
                     .unwrap_or(crate::models::NovelGenre::Fantasy);
@@ -62,10 +62,10 @@ pub fn show(ui: &mut Ui, app: &mut NovelApp) {
             }
         }
 
-        // Show result if available
+        // 显示生成结果
         if let Some(ref result) = app.outline_result {
             ui.separator();
-            ui.label("Generated Outline:");
+            ui.label("生成的大纲:");
             ScrollArea::vertical().stick_to_bottom(true).show(ui, |ui| {
                 ui.label(result);
             });

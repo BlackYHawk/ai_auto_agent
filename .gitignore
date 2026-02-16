@@ -13,6 +13,9 @@ release/
 .env*
 projects/
 
+# Local config (sensitive)
+config.local.toml
+
 # OS
 .DS_Store
 Thumbs.db

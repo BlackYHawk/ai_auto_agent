@@ -27,6 +27,47 @@ impl StorageService {
         Ok(Self { base_path, project_id: None })
     }
 
+    /// List all projects in the projects directory
+    pub fn list_projects(base_path: impl Into<PathBuf>) -> Result<Vec<NovelProject>> {
+        let base_path = base_path.into();
+        let projects_dir = base_path.join("projects");
+
+        if !projects_dir.exists() {
+            return Ok(Vec::new());
+        }
+
+        let mut projects = Vec::new();
+
+        for entry in fs::read_dir(&projects_dir)? {
+            let entry = entry?;
+            let path = entry.path();
+
+            if path.is_dir() {
+                let project_file = path.join("project.json");
+                if project_file.exists() {
+                    match fs::read_to_string(&project_file) {
+                        Ok(json) => {
+                            match serde_json::from_str::<NovelProject>(&json) {
+                                Ok(project) => projects.push(project),
+                                Err(e) => {
+                                    tracing::warn!("Failed to parse project at {:?}: {}", path, e);
+                                }
+                            }
+                        }
+                        Err(e) => {
+                            tracing::warn!("Failed to read project file {:?}: {}", project_file, e);
+                        }
+                    }
+                }
+            }
+        }
+
+        // Sort by creation date (newest first)
+        projects.sort_by(|a, b| b.created_at.cmp(&a.created_at));
+
+        Ok(projects)
+    }
+
     /// Create a new storage service for a specific project
     pub fn new_project(base_path: impl Into<PathBuf>, project_id: Uuid) -> Result<Self> {
         let base_path = base_path.into();

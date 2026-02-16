@@ -134,17 +134,62 @@ impl Default for Config {
 }
 
 /// Load configuration from file
+/// Priority: local config > default config file > defaults
 pub fn load_config(path: &Path) -> Result<Config> {
-    if !path.exists() {
-        tracing::warn!("Config file not found, using defaults: {:?}", path);
+    // Try to load from local config first (config.local.toml)
+    let local_config_path = Path::new("config.local.toml");
+
+    let mut final_config = if local_config_path.exists() {
+        tracing::info!("Loading config from local file: {:?}", local_config_path);
+        let content = fs::read_to_string(local_config_path)
+            .with_context(|| format!("Failed to read local config from {:?}", local_config_path))?;
+        let config: Config = toml::from_str(&content)
+            .with_context(|| "Failed to parse local config")?;
+        Some(config)
+    } else {
+        None
+    };
+
+    // If no local config, try the specified path
+    if final_config.is_none() && path.exists() {
+        tracing::info!("Loading config from file: {:?}", path);
+        let content = fs::read_to_string(path)
+            .with_context(|| format!("Failed to read config from {:?}", path))?;
+
+        let config: Config = toml::from_str(&content)
+            .with_context(|| "Failed to parse config")?;
+        final_config = Some(config);
+    }
+
+    // If still no config, use defaults
+    if final_config.is_none() {
+        tracing::warn!("Config file not found, using defaults");
         return Ok(Config::default());
     }
 
-    let content = fs::read_to_string(path)
-        .with_context(|| format!("Failed to read config from {:?}", path))?;
+    // Merge with environment variables (for sensitive data)
+    let mut config = final_config.unwrap();
 
-    let config: Config = toml::from_str(&content)
-        .with_context(|| "Failed to parse config")?;
+    // Override sensitive values from environment variables if set
+    if let Ok(api_key) = std::env::var("LLM_API_KEY") {
+        if !api_key.is_empty() {
+            config.llm.api_key = api_key;
+        }
+    }
+
+    if let Ok(fanqie_cookie) = std::env::var("FANQIE_COOKIE") {
+        if !fanqie_cookie.is_empty() {
+            if config.fanqie.is_none() {
+                config.fanqie = Some(FanqieConfig {
+                    enabled: true,
+                    cookie: Some(fanqie_cookie),
+                    username: None,
+                });
+            } else if let Some(ref mut fc) = config.fanqie {
+                fc.cookie = Some(fanqie_cookie);
+            }
+        }
+    }
 
     Ok(config)
 }

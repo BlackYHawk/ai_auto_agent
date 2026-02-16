@@ -220,6 +220,72 @@ fn run_gui() -> std::result::Result<(), eframe::Error> {
     eframe::run_native(
         "AI Novel Agent",
         options,
-        Box::new(|_cc| Ok(Box::new(ai_novel_agent::gui::app::NovelApp::default()))),
+        Box::new(|cc| {
+            // 配置中文字体
+            let mut fonts = egui::FontDefinitions::default();
+
+            // 使用 font-kit 加载系统字体
+            let source = font_kit::source::SystemSource::new();
+
+            // 尝试查找中文字体
+            let font_names = [
+                "Hiragino Sans GB",
+                "PingFang SC",
+                "Microsoft YaHei",
+                "SimHei",
+                "Noto Sans CJK SC",
+            ];
+
+            let mut font_loaded = false;
+            for font_name in &font_names {
+                if let Ok(family) = source.select_family_by_name(font_name) {
+                    for handle in family.fonts() {
+                        match handle {
+                            font_kit::handle::Handle::Path { path, font_index: _ } => {
+                                if let Ok(font_data) = std::fs::read(&path) {
+                                    fonts.font_data.insert(
+                                        "chinese".to_string(),
+                                        egui::FontData::from_owned(font_data),
+                                    );
+                                    font_loaded = true;
+                                    break;
+                                }
+                            }
+                            font_kit::handle::Handle::Memory { bytes, font_index: _ } => {
+                                let font_data: Vec<u8> = bytes.as_ref().clone();
+                                fonts.font_data.insert(
+                                    "chinese".to_string(),
+                                    egui::FontData::from_owned(font_data),
+                                );
+                                font_loaded = true;
+                                break;
+                            }
+                        }
+                    }
+                    if font_loaded {
+                        break;
+                    }
+                }
+            }
+
+            // 设置为默认字体
+            if fonts.font_data.contains_key("chinese") {
+                fonts
+                    .families
+                    .entry(egui::FontFamily::Proportional)
+                    .or_default()
+                    .insert(0, "chinese".to_string());
+
+                fonts
+                    .families
+                    .entry(egui::FontFamily::Monospace)
+                    .or_default()
+                    .insert(0, "chinese".to_string());
+            }
+
+            cc.egui_ctx.set_fonts(fonts);
+
+            Ok(Box::new(ai_novel_agent::gui::app::NovelApp::default()))
+        }),
     )
 }

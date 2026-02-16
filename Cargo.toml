@@ -48,6 +48,9 @@ clap = { version = "4.4", features = ["derive"] }
 egui = "0.29"
 eframe = "0.29"
 
+# Font loading for CJK support
+font-kit = "0.14"
+
 # For vector storage (future phase)
 # qdrant-client = "1.0"
 

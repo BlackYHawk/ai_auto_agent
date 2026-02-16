@@ -1,52 +1,52 @@
-//! Publish Screen
+//! 发布页面
 
 use egui::{ComboBox, ScrollArea, Ui};
 
 use crate::gui::app::{NovelApp, PublishAction, Screen, TaskState};
 
-/// Show the publish screen
+/// 显示发布页面
 pub fn show(ui: &mut Ui, app: &mut NovelApp) {
     egui::SidePanel::left("left_panel").min_width(200.0).show_inside(ui, |ui| {
         ui.heading("AI Novel Agent");
 
         ui.separator();
 
-        if ui.button("← Back").clicked() {
+        if ui.button("← 返回").clicked() {
             app.navigate_to(Screen::ProjectDetail);
         }
     });
 
     egui::CentralPanel::default().show_inside(ui, |ui| {
-        ui.heading("Publish to Fanqie");
+        ui.heading("发布到番茄小说");
 
         ui.separator();
 
-        // Action selection
-        ui.label("Publish Action:");
+        // 操作选择
+        ui.label("发布操作:");
         ComboBox::from_id_salt("publish_action")
             .selected_text(app.publish_form.action.label())
             .show_ui(ui, |ui| {
-                ui.selectable_value(&mut app.publish_form.action, PublishAction::Create, "Create Novel");
-                ui.selectable_value(&mut app.publish_form.action, PublishAction::Upload, "Upload Chapters");
-                ui.selectable_value(&mut app.publish_form.action, PublishAction::Submit, "Submit for Review");
+                ui.selectable_value(&mut app.publish_form.action, PublishAction::Create, "创建小说");
+                ui.selectable_value(&mut app.publish_form.action, PublishAction::Upload, "上传章节");
+                ui.selectable_value(&mut app.publish_form.action, PublishAction::Submit, "提交审核");
             });
 
         ui.separator();
 
-        // Chapter range
-        ui.label("Chapter Range (e.g., 1-10):");
+        // 章节范围
+        ui.label("章节范围 (如: 1-10):");
         ui.text_edit_singleline(&mut app.publish_form.chapter_range);
 
         ui.separator();
 
-        // Publish button
-        if ui.button("Publish").clicked() {
+        // 发布按钮
+        if ui.button("发布").clicked() {
             let project_id = app.selected_project_id.unwrap_or_default();
             let action = app.publish_form.action.clone();
             let chapter_range = app.publish_form.chapter_range.clone();
 
             if chapter_range.is_empty() {
-                app.set_error("Please enter chapter range".to_string());
+                app.set_error("请输入章节范围".to_string());
             } else {
                 match app.publish_to_fanqie(project_id, action, chapter_range) {
                     Ok(result) => {
@@ -68,7 +68,7 @@ pub fn show(ui: &mut Ui, app: &mut NovelApp) {
             }
         }
 
-        // Show progress/status if running
+        // 显示进度/状态
         if let Some(task_state) = app.running_tasks.get("publish") {
             match task_state {
                 TaskState::Running { progress, message } => {
@@ -78,11 +78,11 @@ pub fn show(ui: &mut Ui, app: &mut NovelApp) {
                 }
                 TaskState::Completed => {
                     ui.separator();
-                    ui.label("Publish completed!");
+                    ui.label("发布完成!");
                 }
                 TaskState::Failed { error } => {
                     ui.separator();
-                    ui.label(format!("Error: {}", error));
+                    ui.label(format!("错误: {}", error));
                 }
                 _ => {}
             }
@@ -90,15 +90,15 @@ pub fn show(ui: &mut Ui, app: &mut NovelApp) {
 
         ui.separator();
 
-        // Show publish result
-        ui.label("Publish Status:");
+        // 显示发布结果
+        ui.label("发布状态:");
         if let Some(ref result) = app.publish_result {
             ScrollArea::vertical().stick_to_bottom(true).show(ui, |ui| {
                 ui.label(result);
             });
         } else {
             ScrollArea::vertical().show(ui, |ui| {
-                ui.label("Enter chapter range and click Publish...\n\nNote: Configure Fanqie cookies in config.toml for full integration.");
+                ui.label("输入章节范围并点击发布...\n\n注意: 请在 config.toml 中配置番茄小说cookies以完成完整集成。");
             });
         }
     });

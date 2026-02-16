@@ -1,28 +1,28 @@
-//! Consistency Check Screen
+//! 一致性检查页面
 
 use egui::{ProgressBar, ScrollArea, Ui};
 
 use crate::gui::app::{NovelApp, Screen, TaskState};
 
-/// Show the consistency check screen
+/// 显示一致性检查页面
 pub fn show(ui: &mut Ui, app: &mut NovelApp) {
     egui::SidePanel::left("left_panel").min_width(200.0).show_inside(ui, |ui| {
         ui.heading("AI Novel Agent");
 
         ui.separator();
 
-        if ui.button("← Back").clicked() {
+        if ui.button("← 返回").clicked() {
             app.navigate_to(Screen::ProjectDetail);
         }
     });
 
     egui::CentralPanel::default().show_inside(ui, |ui| {
-        ui.heading("Consistency Check");
+        ui.heading("一致性检查");
 
         ui.separator();
 
-        // Check button
-        if ui.button("Run Consistency Check").clicked() {
+        // 检查按钮
+        if ui.button("运行一致性检查").clicked() {
             let project_id = app.selected_project_id.unwrap_or_default();
             match app.run_consistency_check(project_id) {
                 Ok(result) => {
@@ -42,7 +42,7 @@ pub fn show(ui: &mut Ui, app: &mut NovelApp) {
             }
         }
 
-        // Show progress if running
+        // 显示进度
         if let Some(task_state) = app.running_tasks.get("check") {
             match task_state {
                 TaskState::Running { progress, message } => {
@@ -52,26 +52,26 @@ pub fn show(ui: &mut Ui, app: &mut NovelApp) {
                 }
                 TaskState::Completed => {
                     ui.separator();
-                    ui.label("Check completed!");
+                    ui.label("检查完成!");
                 }
                 TaskState::Failed { error } => {
                     ui.separator();
-                    ui.label(format!("Error: {}", error));
+                    ui.label(format!("错误: {}", error));
                 }
                 _ => {}
             }
         }
 
-        // Show results
+        // 显示结果
         ui.separator();
-        ui.label("Consistency Report:");
+        ui.label("一致性报告:");
         if let Some(ref result) = app.outline_result {
             ScrollArea::vertical().stick_to_bottom(true).show(ui, |ui| {
                 ui.label(result);
             });
         } else {
             ScrollArea::vertical().show(ui, |ui| {
-                ui.label("Click 'Run Consistency Check' to analyze your project...");
+                ui.label("点击\"运行一致性检查\"分析您的项目...");
             });
         }
     });

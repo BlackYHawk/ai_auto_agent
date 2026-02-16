@@ -4,6 +4,17 @@ use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
+/// Project-level LLM model configuration
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct ProjectModelConfig {
+    /// Whether to enable project-level config (otherwise use global)
+    pub enabled: bool,
+    /// Model provider (qwen, minimax, openai)
+    pub provider: Option<String>,
+    /// Model name
+    pub model: Option<String>,
+}
+
 /// Genre of the novel
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
@@ -87,6 +98,10 @@ pub struct NovelProject {
 
     /// Updated timestamp
     pub updated_at: DateTime<Utc>,
+
+    /// Project-level model configuration
+    #[serde(default)]
+    pub model_config: ProjectModelConfig,
 }
 
 impl NovelProject {
@@ -101,6 +116,7 @@ impl NovelProject {
             target_word_count,
             fanqie_novel_id: None,
             publication_status: PublicationStatus::NotPublished,
+            model_config: ProjectModelConfig::default(),
             created_at: now,
             updated_at: now,
         }

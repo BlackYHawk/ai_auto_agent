@@ -1,38 +1,38 @@
-//! Chapter Generation Screen
+//! 章节生成页面
 
 use egui::{ProgressBar, ScrollArea, Ui};
 
 use crate::gui::app::{NovelApp, Screen, TaskState};
 
-/// Show the chapter generation screen
+/// 显示章节生成页面
 pub fn show(ui: &mut Ui, app: &mut NovelApp) {
     egui::SidePanel::left("left_panel").min_width(200.0).show_inside(ui, |ui| {
         ui.heading("AI Novel Agent");
 
         ui.separator();
 
-        if ui.button("← Back").clicked() {
+        if ui.button("← 返回").clicked() {
             app.navigate_to(Screen::ProjectDetail);
         }
     });
 
     egui::CentralPanel::default().show_inside(ui, |ui| {
-        ui.heading("Generate Chapters");
+        ui.heading("生成章节");
 
         ui.separator();
 
-        // Chapter range input
-        ui.label("Chapter Range (e.g., 1-10):");
+        // 章节范围输入
+        ui.label("章节范围 (如: 1-10):");
         ui.text_edit_singleline(&mut app.generate_form.chapter_range);
 
         ui.separator();
 
-        // Generate button
-        if ui.button("Generate").clicked() {
+        // 生成按钮
+        if ui.button("生成").clicked() {
             if app.generate_form.chapter_range.is_empty() {
-                app.set_error("Please enter chapter range".to_string());
+                app.set_error("请输入章节范围".to_string());
             } else {
-                // Parse chapter range
+                // 解析章节范围
                 let parts: Vec<&str> = app.generate_form.chapter_range.split('-').collect();
                 let (start, end) = if parts.len() == 2 {
                     (parts[0].trim().parse::<u32>(), parts[1].trim().parse::<u32>())
@@ -41,7 +41,7 @@ pub fn show(ui: &mut Ui, app: &mut NovelApp) {
                     let m = parts[0].trim().parse::<u32>();
                     (n, m)
                 } else {
-                    app.set_error("Invalid format. Use '1-10' or '5'".to_string());
+                    app.set_error("格式无效，请使用 '1-10' 或 '5'".to_string());
                     return;
                 };
 
@@ -67,13 +67,13 @@ pub fn show(ui: &mut Ui, app: &mut NovelApp) {
                         }
                     }
                     _ => {
-                        app.set_error("Invalid chapter range".to_string());
+                        app.set_error("无效的章节范围".to_string());
                     }
                 }
             }
         }
 
-        // Show progress if running
+        // 显示进度
         if let Some(task_state) = app.running_tasks.get("generate") {
             match task_state {
                 TaskState::Running { progress, message } => {
@@ -83,26 +83,26 @@ pub fn show(ui: &mut Ui, app: &mut NovelApp) {
                 }
                 TaskState::Failed { error } => {
                     ui.separator();
-                    ui.label(format!("Error: {}", error));
+                    ui.label(format!("错误: {}", error));
                 }
                 TaskState::Completed => {
                     ui.separator();
-                    ui.label("Generation completed!");
+                    ui.label("生成完成!");
                 }
                 _ => {}
             }
         }
 
-        // Show generated content
+        // 显示生成的内容
         ui.separator();
-        ui.label("Generated Content:");
+        ui.label("生成内容:");
         if let Some(ref result) = app.chapter_result {
             ScrollArea::vertical().stick_to_bottom(true).show(ui, |ui| {
                 ui.label(result);
             });
         } else {
             ScrollArea::vertical().show(ui, |ui| {
-                ui.label("Enter a chapter range and click Generate...");
+                ui.label("输入章节范围并点击生成...");
             });
         }
     });
