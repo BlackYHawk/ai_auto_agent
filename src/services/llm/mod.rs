@@ -170,6 +170,7 @@ struct MiniMaxBaseResp {
 struct MiniMaxChoice {
     message: MiniMaxMessage,
     #[serde(rename = "finish_reason")]
+    #[allow(dead_code)]
     finish_reason: String,
 }
 

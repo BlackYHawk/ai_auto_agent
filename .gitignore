@@ -11,6 +11,7 @@ release/
 # Logs
 *.log
 .env*
+storage/
 projects/
 
 # Local config (sensitive)

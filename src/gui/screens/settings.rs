@@ -4,32 +4,8 @@ use egui::{ComboBox, Ui};
 
 use crate::gui::app::{NovelApp, Screen};
 
-/// 全局LLM配置结构
-#[derive(Debug, Clone, Default)]
-pub struct LlmConfigForm {
-    pub provider: String,
-    pub api_key: String,
-    pub model: String,
-    pub temperature: String,
-    pub max_tokens: String,
-}
-
 /// 显示设置页面
 pub fn show(ui: &mut Ui, app: &mut NovelApp) {
-    // 静态配置表单（实际应从config.toml加载）
-    static CONFIG: std::sync::LazyLock<std::sync::Mutex<LlmConfigForm>> =
-        std::sync::LazyLock::new(|| {
-            std::sync::Mutex::new(LlmConfigForm {
-                provider: "minimax".to_string(),
-                api_key: "".to_string(),
-                model: "abab6.5s-chat".to_string(),
-                temperature: "0.7".to_string(),
-                max_tokens: "4096".to_string(),
-            })
-        });
-
-    let mut config = CONFIG.lock().unwrap();
-
     egui::SidePanel::left("left_panel").min_width(200.0).show_inside(ui, |ui| {
         ui.heading("AI Novel Agent");
 
@@ -44,53 +20,93 @@ pub fn show(ui: &mut Ui, app: &mut NovelApp) {
         ui.heading("设置");
         ui.add_space(10.0);
 
+        // 显示当前配置状态
+        let has_api_key = !app.config.llm.api_key.is_empty();
+        let config_status = if has_api_key {
+            "✓ 已配置"
+        } else {
+            "✗ 未配置"
+        };
+        let status_color = if has_api_key { egui::Color32::GREEN } else { egui::Color32::RED };
+        ui.label(egui::RichText::new(format!("LLM配置状态: {}", config_status)).color(status_color));
+        ui.add_space(5.0);
+        ui.label(format!("当前提供商: {}", app.config.llm.provider));
+        if let Some(ref model) = app.config.llm.model {
+            ui.label(format!("当前模型: {}", model));
+        }
+
+        ui.add_space(15.0);
+
         // LLM配置区域
         egui::CollapsingHeader::new("LLM 模型配置")
             .default_open(true)
             .show(ui, |ui| {
                 ui.add_space(5.0);
 
+                // 获取可变引用
+                let provider = app.config.llm.provider.clone();
+                let mut provider_selected = provider.clone();
+
                 // 提供商选择
                 ui.label("模型提供商:");
                 ComboBox::from_id_salt("provider_selector")
-                    .selected_text(&config.provider)
+                    .selected_text(&provider_selected)
                     .show_ui(ui, |ui| {
-                        ui.selectable_value(&mut config.provider, "minimax".to_string(), "MiniMax");
-                        ui.selectable_value(&mut config.provider, "qwen".to_string(), "Qwen (阿里)");
-                        ui.selectable_value(&mut config.provider, "openai".to_string(), "OpenAI");
-                        ui.selectable_value(&mut config.provider, "anthropic".to_string(), "Anthropic");
+                        ui.selectable_value(&mut provider_selected, "minimax".to_string(), "MiniMax");
+                        ui.selectable_value(&mut provider_selected, "qwen".to_string(), "Qwen (阿里)");
+                        ui.selectable_value(&mut provider_selected, "openai".to_string(), "OpenAI");
+                        ui.selectable_value(&mut provider_selected, "anthropic".to_string(), "Anthropic");
                     });
+
+                // 如果提供商改变了，更新配置
+                if provider_selected != provider {
+                    app.config.llm.provider = provider_selected;
+                }
 
                 ui.add_space(10.0);
 
                 // API Key
+                let mut api_key = app.config.llm.api_key.clone();
                 ui.label("API Key:");
-                ui.text_edit_singleline(&mut config.api_key);
+                ui.text_edit_singleline(&mut api_key);
+                app.config.llm.api_key = api_key;
 
                 ui.add_space(10.0);
 
                 // 模型选择
+                let mut model = app.config.llm.model.clone().unwrap_or_default();
                 ui.label("模型名称:");
-                ui.text_edit_singleline(&mut config.model);
+                ui.text_edit_singleline(&mut model);
+                app.config.llm.model = if model.is_empty() { None } else { Some(model) };
 
                 ui.add_space(10.0);
 
                 // Temperature
+                let mut temperature = app.config.llm.temperature.to_string();
                 ui.label("Temperature (0.0-1.0):");
-                ui.text_edit_singleline(&mut config.temperature);
+                ui.text_edit_singleline(&mut temperature);
+                if let Ok(t) = temperature.parse::<f32>() {
+                    app.config.llm.temperature = t;
+                }
 
                 ui.add_space(10.0);
 
                 // Max Tokens
+                let mut max_tokens = app.config.llm.max_tokens.to_string();
                 ui.label("Max Tokens:");
-                ui.text_edit_singleline(&mut config.max_tokens);
+                ui.text_edit_singleline(&mut max_tokens);
+                if let Ok(mt) = max_tokens.parse::<u32>() {
+                    app.config.llm.max_tokens = mt;
+                }
 
                 ui.add_space(15.0);
 
                 // 保存按钮
                 if ui.button("保存配置").clicked() {
-                    // TODO: 保存到 config.toml
-                    app.set_error("配置已保存 (模拟)".to_string());
+                    match crate::config::save_config(&app.config, std::path::Path::new("config.local.toml")) {
+                        Ok(_) => app.set_error("配置已保存到 config.local.toml".to_string()),
+                        Err(e) => app.set_error(format!("保存配置失败: {}", e)),
+                    }
                 }
             });
 
