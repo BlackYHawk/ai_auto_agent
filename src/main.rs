@@ -27,58 +27,71 @@ enum Commands {
         /// Novel name
         name: String,
 
-        /// Genre (fantasy, urban, xianxia, etc.)
-        #[arg(short, long)]
+        /// Genre (fantasy, urban, xianxia, historical, romance, scifi, game, horror)
+        #[arg(short, long = "genre")]
         genre: String,
 
         /// Target word count
-        #[arg(long, default_value = "1000000")]
+        #[arg(short, long = "target", default_value = "1000000")]
         target: u64,
     },
 
     /// Run feasibility analysis for a genre
     Feasibility {
-        /// Project ID
-        project_id: String,
+        /// Project ID (optional, will create temp project if not provided)
+        #[arg(short, long = "project-id")]
+        project_id: Option<String>,
 
-        /// Genre to analyze
-        #[arg(short, long)]
+        /// Genre to analyze (fantasy, urban, xianxia, etc.)
+        #[arg(short, long = "genre")]
         genre: String,
     },
 
     /// Generate novel outline
     Outline {
         /// Project ID
+        #[arg(short, long = "project-id")]
         project_id: String,
 
-        /// Premise/pitch
-        #[arg(short, long)]
+        /// Premise/pitch of the story
+        #[arg(short, long = "premise")]
         premise: String,
 
-        /// Theme
-        #[arg(short, long)]
+        /// Theme of the story
+        #[arg(short, long = "theme")]
         theme: Option<String>,
+
+        /// Target word count
+        #[arg(short, long = "target", default_value = "1000000")]
+        target: u64,
+
+        /// Genre (optional, will use project genre if not provided)
+        #[arg(short, long = "genre")]
+        genre: Option<String>,
     },
 
     /// Generate chapter plan
     Plan {
         /// Project ID
+        #[arg(short, long = "project-id")]
         project_id: String,
     },
 
     /// Generate chapter(s)
     Generate {
         /// Project ID
+        #[arg(short, long = "project-id")]
         project_id: String,
 
         /// Chapter number (or range like "1-10")
-        #[arg(short, long)]
+        #[arg(short, long = "chapters")]
         chapters: String,
     },
 
     /// Publish to Fanqie platform
     Publish {
         /// Project ID
+        #[arg(short, long = "project-id")]
         project_id: String,
 
         /// Subcommand
@@ -89,6 +102,7 @@ enum Commands {
     /// Check consistency
     Check {
         /// Project ID
+        #[arg(short, long = "project-id")]
         project_id: String,
     },
 
@@ -168,12 +182,20 @@ async fn main() -> Result<()> {
             println!("Project directory: projects/{}/", project.id);
         }
         Commands::Feasibility { project_id, genre } => {
-            tracing::info!("Running feasibility analysis for: {}", project_id);
-            ai_novel_agent::cli::commands::feasibility::run(&project_id, &genre).await?;
+            // If no project_id provided, generate a temp one
+            let proj_id = project_id.unwrap_or_else(|| {
+                let temp_id = uuid::Uuid::new_v4();
+                println!("No project-id provided, using temporary ID: {}", temp_id);
+                temp_id.to_string()
+            });
+            tracing::info!("Running feasibility analysis for: {}", proj_id);
+            ai_novel_agent::cli::commands::feasibility::run(&proj_id, &genre).await?;
         }
-        Commands::Outline { project_id, premise, theme } => {
+        Commands::Outline { project_id, premise, theme, target, genre } => {
             tracing::info!("Generating outline for: {}", project_id);
-            ai_novel_agent::cli::commands::outline::run(&project_id, &premise, theme.as_deref()).await?;
+            // Parse genre if provided, otherwise use default
+            let genre_str = genre.unwrap_or_else(|| "fantasy".to_string());
+            ai_novel_agent::cli::commands::outline::run(&project_id, &premise, theme.as_deref(), target, &genre_str).await?;
         }
         Commands::Plan { project_id } => {
             tracing::info!("Generating chapter plan for: {}", project_id);

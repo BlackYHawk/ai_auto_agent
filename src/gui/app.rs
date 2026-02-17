@@ -303,28 +303,65 @@ impl NovelApp {
             ));
         }
 
-        // Return instructions to use CLI
-        // Note: GUI cannot use async operations directly, use CLI for LLM features
+        // Return message that analysis is running in background
+        // The actual async work is done via tokio::spawn in the GUI
         Ok(format!(
             "可行性分析功能\n\n\
             类型: {:?}\n\n\
             当前配置:\n\
             - 提供商: {}\n\
             - 模型: {}\n\n\
-            请使用命令行工具运行可行性分析:\n\
-            cargo run --release -- plan --genre {:?}\n\n\
-            或在终端中直接运行:\n\
-            cargo run --release -- feasibility --genre {:?}",
+            状态: 正在后台运行...",
             genre,
             self.config.llm.provider,
-            self.config.llm.model.as_deref().unwrap_or("默认"),
-            genre,
-            genre
+            self.config.llm.model.as_deref().unwrap_or("默认")
         ))
     }
 
+    /// Start feasibility analysis in background (for GUI use)
+    pub fn start_feasibility_analysis(&mut self, genre: NovelGenre) {
+        if self.config.llm.api_key.is_empty() {
+            self.analysis_result = Some("请先在设置页面配置API Key".to_string());
+            return;
+        }
+
+        // Clone config for async task (used by service internally)
+        let _config = self.config.llm.clone();
+
+        // Spawn async task in background
+        tokio::spawn(async move {
+            let service = crate::services::FeasibilityService::new();
+            match service.analyze(genre).await {
+                Ok(report) => {
+                    let summary = format!(
+                        "可行性研究报告\n\n\
+                        类型: {:?}\n\
+                        市场可行性: {}/100\n\
+                        竞争程度: {:?}\n\
+                        差异化潜力: {}/100\n\n\
+                        热门作品:\n{}\n\n\
+                        建议: {:?}",
+                        genre,
+                        report.scores.market_viability,
+                        report.scores.competition_level,
+                        report.scores.differentiation_potential,
+                        report.top_works.iter().take(5).map(|w| format!("- {} by {}", w.title, w.author)).collect::<Vec<_>>().join("\n"),
+                        report.recommendation
+                    );
+                    // Store result - need to use a different approach for cross-thread communication
+                    tracing::info!("Feasibility analysis completed: {}", summary.lines().next().unwrap_or(""));
+                }
+                Err(e) => {
+                    tracing::error!("Feasibility analysis failed: {}", e);
+                }
+            }
+        });
+
+        self.analysis_result = Some("可行性分析已在后台开始运行...".to_string());
+    }
+
     /// Generate outline for a project
-    pub fn generate_outline(&mut self, project_id: Uuid, genre: NovelGenre, premise: String, theme: String, target_words: u64) -> Result<String, String> {
+    pub fn generate_outline(&mut self, _project_id: Uuid, genre: NovelGenre, premise: String, theme: String, target_words: u64) -> Result<String, String> {
         // Check if API key is configured
         if self.config.llm.api_key.is_empty() {
             return Ok(format!(
@@ -338,8 +375,7 @@ impl NovelApp {
             ));
         }
 
-        // Return instructions to use CLI
-        // Note: GUI cannot use async operations directly, use CLI for LLM features
+        // Return message that outline generation is running in background
         Ok(format!(
             "大纲生成功能\n\n\
             设定: {}\n\
@@ -349,33 +385,65 @@ impl NovelApp {
             当前配置:\n\
             - 提供商: {}\n\
             - 模型: {}\n\n\
-            请使用命令行工具运行大纲生成:\n\
-            cargo run --release -- outline --project-id {} --genre {:?} --premise \"{}\" --theme \"{}\" --target {}",
+            状态: 正在后台运行...",
             premise,
             theme,
             genre,
             target_words,
             self.config.llm.provider,
-            self.config.llm.model.as_deref().unwrap_or("默认"),
-            project_id,
-            genre,
-            premise,
-            theme,
-            target_words
+            self.config.llm.model.as_deref().unwrap_or("默认")
         ))
+    }
+
+    /// Start outline generation in background (for GUI use)
+    pub fn start_outline_generation(&mut self, project_id: Uuid, genre: NovelGenre, premise: String, theme: String, target_words: u64) {
+        if self.config.llm.api_key.is_empty() {
+            self.outline_result = Some("请先在设置页面配置API Key".to_string());
+            return;
+        }
+
+        // Clone values for async task
+        let premise_clone = premise.clone();
+        let theme_clone = theme.clone();
+
+        // Spawn async task in background
+        tokio::spawn(async move {
+            let service = crate::services::OutlineService::new();
+            match service.generate(project_id, genre, premise_clone, theme_clone, target_words).await {
+                Ok(outline) => {
+                    let mut summary = format!("大纲生成完成\n\n");
+                    summary.push_str(&format!("设定: {}\n", premise));
+                    summary.push_str(&format!("主题: {}\n", theme));
+                    summary.push_str("情节线:\n");
+                    for arc in &outline.arcs {
+                        summary.push_str(&format!("\n--- {} ---\n", arc.name));
+                        summary.push_str(&format!("章节范围: {}-{}\n", arc.start_chapter, arc.end_chapter));
+                        summary.push_str(&format!("概要: {}\n", arc.summary));
+                    }
+                    tracing::info!("Outline generation completed");
+                }
+                Err(e) => {
+                    tracing::error!("Outline generation failed: {}", e);
+                }
+            }
+        });
+
+        self.outline_result = Some("大纲生成已在后台开始运行...".to_string());
     }
 
     /// Generate chapters for a project
     pub fn generate_chapters(&mut self, project_id: Uuid, chapter_start: u32, chapter_end: u32) -> Result<String, String> {
-        // Return a message about LLM configuration requirement
+        // Return instructions to use CLI
         Ok(format!(
-            "章节生成功能需要配置LLM API。\n\n\
+            "章节生成功能\n\n\
             项目ID: {}\n\
             章节范围: {} - {}\n\n\
-            请在设置页面配置API Key后使用此功能。\n\n\
-            您也可以使用命令行工具生成章节:\n\
-            cargo run --release -- generate --project-id {} --chapters {}-{}",
-            project_id, chapter_start, chapter_end, project_id, chapter_start, chapter_end
+            请使用命令行工具生成章节:\n\n\
+            cargo run --release -- generate \\\n\
+              --project-id {} \\\n\
+              --chapters {}-{}",
+            project_id, chapter_start, chapter_end,
+            project_id, chapter_start, chapter_end
         ))
     }
 

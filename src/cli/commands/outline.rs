@@ -5,19 +5,32 @@ use uuid::Uuid;
 use crate::models::NovelGenre;
 use crate::services::{OutlineService, StorageService};
 
-pub async fn run(project_id: &str, premise: &str, theme: Option<&str>) -> Result<()> {
+pub async fn run(project_id: &str, premise: &str, theme: Option<&str>, target: u64, genre: &str) -> Result<()> {
     tracing::info!("Generating outline for: {}", project_id);
 
     let theme = theme.unwrap_or("成长与挑战");
     let project_uuid = Uuid::parse_str(project_id)?;
 
+    // Parse genre
+    let novel_genre = match genre.to_lowercase().as_str() {
+        "fantasy" | "玄幻" => NovelGenre::Fantasy,
+        "urban" | "都市" => NovelGenre::Urban,
+        "xianxia" | "仙侠" => NovelGenre::Xianxia,
+        "historical" | "历史" => NovelGenre::Historical,
+        "romance" | "言情" => NovelGenre::Romance,
+        "scifi" | "科幻" => NovelGenre::Scifi,
+        "game" | "游戏" => NovelGenre::Game,
+        "horror" | "悬疑" => NovelGenre::Horror,
+        _ => NovelGenre::Other,
+    };
+
     let service = OutlineService::new();
     let outline = service.generate(
         project_uuid,
-        NovelGenre::Fantasy, // Default genre
+        novel_genre,
         premise.to_string(),
         theme.to_string(),
-        1_000_000,
+        target,
     ).await?;
 
     // Save outline to project directory
