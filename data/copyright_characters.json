@@ -1,0 +1,82 @@
+{
+  "fantasy": [
+    {"name": "萧炎", "source": "斗破苍穹", "alternatives": ["萧云", "萧天", "萧凡"]},
+    {"name": "唐三", "source": "斗罗大陆", "alternatives": ["唐云", "唐风", "唐羽"]},
+    {"name": "林动", "source": "武动乾坤", "alternatives": ["林云", "林风", "林轩"]},
+    {"name": "牧尘", "source": "大主宰", "alternatives": ["牧云", "牧风", "牧原"]},
+    {"name": "土豆", "source": "作者名", "alternatives": ["土豆", "土娃"]},
+    {"name": "辰东", "source": "作者名", "alternatives": ["辰东", "北皇"]},
+    {"name": "我吃西红柿", "source": "作者名", "alternatives": ["西红柿", "番茄"]},
+    {"name": "耳根", "source": "作者名", "alternatives": ["耳根", "根耳"]},
+    {"name": "药老", "source": "斗破苍穹", "alternatives": ["药老", "药尘"]},
+    {"name": "小医仙", "source": "斗破苍穹", "alternatives": ["医仙", "小医"]},
+    {"name": "美杜莎", "source": "斗破苍穹", "alternatives": ["莎女王", "蛇女"]},
+    {"name": "云韵", "source": "斗破苍穹", "alternatives": ["云儿", "韵儿"]},
+    {"name": "海波东", "source": "斗破苍穹", "alternatives": ["波东", "海老"]},
+    {"name": "魂殿殿主", "source": "斗破苍穹", "alternatives": ["魂帝", "魂天"]}
+  ],
+  "xianxia": [
+    {"name": "韩立", "source": "凡人修仙传", "alternatives": ["韩云", "韩风", "韩轩"]},
+    {"name": "张小凡", "source": "诛仙", "alternatives": ["张云", "张风", "张凡"]},
+    {"name": "陆雪琪", "source": "诛仙", "alternatives": ["陆云", "陆霜", "陆萱"]},
+    {"name": "碧瑶", "source": "诛仙", "alternatives": ["碧云", "碧霞", "碧莲"]},
+    {"name": "田不易", "source": "诛仙", "alternatives": ["田老", "不易"]},
+    {"name": "道玄", "source": "诛仙", "alternatives": ["道云", "道玄真人"]},
+    {"name": "万剑一", "source": "诛仙", "alternatives": ["万云", "剑一"]},
+    {"name": "鬼厉", "source": "诛仙", "alternatives": ["厉儿", "鬼云"]},
+    {"name": "周一仙", "source": "诛仙", "alternatives": ["周仙", "一仙"]},
+    {"name": "小环", "source": "诛仙", "alternatives": ["环儿", "小黛"]},
+    {"name": "瓶子", "source": "凡人修仙传", "alternatives": ["玉瓶", "瓶儿"]},
+    {"name": "银月", "source": "凡人修仙传", "alternatives": ["银儿", "月儿"]},
+    {"name": "大衍神君", "source": "凡人修仙传", "alternatives": ["大衍", "神君"]},
+    {"name": "向之礼", "source": "凡人修仙传", "alternatives": ["向礼", "之礼"]}
+  ],
+  "urban": [
+    {"name": "陈北冥", "source": "都市仙尊", "alternatives": ["陈云", "陈风", "陈南"]},
+    {"name": "叶凡", "source": "都市全能高手", "alternatives": ["叶云", "叶风", "叶天"]},
+    {"name": "林ako", "source": "都市", "alternatives": ["林云", "林风", "林轩"]},
+    {"name": "秦羽", "source": "都市", "alternatives": ["秦云", "秦风"]},
+    {"name": "王笑", "source": "都市", "alternatives": ["王云", "笑天"]},
+    {"name": "陈然", "source": "都市", "alternatives": ["陈云", "然天"]},
+    {"name": "张玄", "source": "都市", "alternatives": ["张云", "玄天"]},
+    {"name": "林清雪", "source": "都市", "alternatives": ["林雪", "清雪"]},
+    {"name": "苏檀儿", "source": "都市", "alternatives": ["苏儿", "檀儿"]},
+    {"name": "宁毅", "source": "都市", "alternatives": ["宁云", "毅儿"]}
+  ],
+  "historical": [
+    {"name": "雍正", "source": "雍正王朝", "alternatives": ["胤禛", "雍正", "弘历"]},
+    {"name": "乾隆", "source": "乾隆王朝", "alternatives": ["弘历", "乾隆", "永琰"]},
+    {"name": "康熙", "source": "康熙王朝", "alternatives": ["玄烨", "康熙"]},
+    {"name": "纪晓岚", "source": "铁齿铜牙", "alternatives": ["晓岚", "纪昀"]},
+    {"name": "和珅", "source": "历史人物", "alternations": ["和相", "和中堂"]},
+    {"name": "甄嬛", "source": "甄嬛传", "alternatives": ["甄儿", "甄嬛"]},
+    {"name": "华妃", "source": "甄嬛传", "alternatives": ["华儿", "妃儿"]},
+    {"name": "沈眉庄", "source": "甄嬛传", "alternatives": ["眉庄", "沈氏"]},
+    {"name": "温实初", "source": "甄嬛传", "alternatives": ["温初", "实初"]},
+    {"name": "果郡王", "source": "甄嬛传", "alternatives": ["允礼", "果王"]}
+  ],
+  "romance": [
+    {"name": "何以笙箫默", "source": "何以笙箫默", "alternatives": ["何云", "何风", "何以"]},
+    {"name": "赵默笙", "source": "何以笙箫默", "alternatives": ["赵笙", "默笙"]},
+    {"name": "顾漫", "source": "作者名", "alternatives": ["顾儿", "漫画"]},
+    {"name": "杉杉", "source": "杉杉来了", "alternatives": ["杉儿", "杉杉"]},
+    {"name": "封腾", "source": "杉杉来了", "alternatives": ["封云", "腾儿"]},
+    {"name": "赵丽颖", "source": "演员名", "alternatives": ["丽颖", "丽影"]},
+    {"name": "霍建华", "source": "演员名", "alternatives": ["建华", "华哥"]},
+    {"name": "何以琛", "source": "何以笙箫默", "alternatives": ["何琛", "何以"]}
+  ],
+  "scifi": [
+    {"name": "刘培强", "source": "流浪地球", "alternatives": ["刘云", "刘强", "刘风"]},
+    {"name": "韩朵朵", "source": "流浪地球", "alternatives": ["韩云", "韩花", "韩晓"]},
+    {"name": "王磊", "source": "流浪地球", "alternatives": ["王云", "磊子"]},
+    {"name": "刘慈欣", "source": "作者名", "alternatives": ["慈欣", "大刘"]},
+    {"name": "三体", "source": "三体", "alternatives": ["三天", "三星"]},
+    {"name": "叶文洁", "source": "三体", "alternatives": ["叶洁", "文洁"]},
+    {"name": "汪淼", "source": "三体", "alternatives": ["汪云", "淼儿"]},
+    {"name": "史强", "source": "三体", "alternatives": ["史云", "强子"]},
+    {"name": "罗辑", "source": "三体", "alternatives": ["罗云", "辑儿"]},
+    {"name": "章北海", "source": "三体", "alternatives": ["章云", "北 海"]}
+  ],
+  "game": [],
+  "horror": []
+}

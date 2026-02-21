@@ -3,9 +3,13 @@
 //! This service provides real web scraping capabilities for Fanqie Novel website.
 //! It can scrape genre rankings and work details from the platform.
 
+use crate::models::{DataSource, HotBook, MarketData};
 use anyhow::{Context, Result};
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
+use std::fs;
+use std::path::PathBuf;
 use std::time::Duration;
 
 /// Genre ID mapping for Fanqie rankings
@@ -28,11 +32,29 @@ pub struct ScrapingService {
     client: Client,
     base_url: String,
     api_base: String,
+    cache_dir: PathBuf,
+    cache_ttl_hours: u32,
+}
+
+/// Cache entry for scraped data
+#[derive(Debug, Clone, Serialize, Deserialize)]
+struct CacheEntry {
+    works: Vec<WorkInfo>,
+    cached_at_secs: u64,
 }
 
 impl ScrapingService {
     /// Create a new scraping service
     pub fn new() -> Self {
+        Self::new_with_cache(PathBuf::from("data/cache"), 24)
+    }
+
+    /// Create with custom cache directory
+    #[allow(dead_code)]
+    pub fn new_with_cache(cache_dir: PathBuf, cache_ttl_hours: u32) -> Self {
+        // Ensure cache directory exists
+        let _ = fs::create_dir_all(&cache_dir);
+
         Self {
             client: Client::builder()
                 .user_agent("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
@@ -41,9 +63,168 @@ impl ScrapingService {
                 .expect("Failed to create HTTP client"),
             base_url: "https://fanqienovel.com".to_string(),
             api_base: "https://api2.fanqiecloud.com.cn".to_string(),
+            cache_dir,
+            cache_ttl_hours,
         }
     }
 
+    /// Get market data for a genre (with caching)
+    pub async fn get_market_data(&self, genre: &str) -> (Option<MarketData>, DataSource) {
+        // Try to get from cache first
+        if let Some(works) = self.get_from_cache(genre) {
+            tracing::info!("Using cached data for genre: {}", genre);
+            let market_data = self.convert_to_market_data(works);
+            return (Some(market_data), DataSource::FanqieCache);
+        }
+
+        // Try to scrape fresh data
+        match self.scrape_genre_rankings(genre).await {
+            Ok(works) if !works.is_empty() => {
+                // Save to cache
+                self.save_to_cache(genre, &works);
+                let market_data = self.convert_to_market_data(works);
+                (Some(market_data), DataSource::FanqieLive)
+            }
+            Ok(_) => {
+                // No data available, return fallback
+                (None, DataSource::Fallback)
+            }
+            Err(e) => {
+                tracing::warn!("Failed to scrape genre {}: {}", genre, e);
+                // Try cache even if expired
+                if let Some(works) = self.get_from_cache_ignore_expiry(genre) {
+                    let market_data = self.convert_to_market_data(works);
+                    return (Some(market_data), DataSource::FanqieCache);
+                }
+                (None, DataSource::Fallback)
+            }
+        }
+    }
+
+    /// Convert WorkInfo list to MarketData
+    fn convert_to_market_data(&self, works: Vec<WorkInfo>) -> MarketData {
+        let total_books = works.len() as u32;
+        let avg_words: u64 = works.iter().map(|w| w.views.saturating_mul(100)).sum::<u64>() / total_books.max(1) as u64;
+
+        let hot_books: Vec<HotBook> = works.iter().take(20).map(|w| HotBook {
+            title: w.title.clone(),
+            author: w.author.clone(),
+            word_count: w.views.saturating_mul(100),
+            likes: w.favorites,
+            rating: Some(w.rating),
+        }).collect();
+
+        // Extract common tags from works
+        let mut tag_counts: HashMap<String, u32> = HashMap::new();
+        for work in &works {
+            // Simple tag extraction based on title keywords
+            let tags = extract_tags_from_title(&work.title);
+            for tag in tags {
+                *tag_counts.entry(tag).or_insert(0) += 1;
+            }
+        }
+        let tags: Vec<String> = tag_counts.into_iter()
+            .map(|(k, _)| k)
+            .take(10)
+            .collect();
+
+        MarketData {
+            total_books,
+            hot_books,
+            average_word_count: avg_words,
+            tags,
+        }
+    }
+
+    /// Get cached data if valid
+    fn get_from_cache(&self, genre: &str) -> Option<Vec<WorkInfo>> {
+        let cache_path = self.cache_dir.join(format!("{}_rankings.json", genre));
+        if !cache_path.exists() {
+            return None;
+        }
+
+        let content = fs::read_to_string(&cache_path).ok()?;
+        let entry: CacheEntry = serde_json::from_str(&content).ok()?;
+
+        // Check if cache is still valid
+        let now = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_secs();
+        if now - entry.cached_at_secs > (self.cache_ttl_hours as u64 * 3600) {
+            return None;
+        }
+
+        Some(entry.works)
+    }
+
+    /// Get cached data ignoring expiry
+    fn get_from_cache_ignore_expiry(&self, genre: &str) -> Option<Vec<WorkInfo>> {
+        let cache_path = self.cache_dir.join(format!("{}_rankings.json", genre));
+        if !cache_path.exists() {
+            return None;
+        }
+
+        let content = fs::read_to_string(&cache_path).ok()?;
+        let entry: CacheEntry = serde_json::from_str(&content).ok()?;
+
+        Some(entry.works)
+    }
+
+    /// Save data to cache
+    fn save_to_cache(&self, genre: &str, works: &[WorkInfo]) {
+        let cache_path = self.cache_dir.join(format!("{}_rankings.json", genre));
+        let now = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_secs();
+        let entry = CacheEntry {
+            works: works.to_vec(),
+            cached_at_secs: now,
+        };
+
+        if let Ok(json) = serde_json::to_string_pretty(&entry) {
+            let _ = fs::write(cache_path, json);
+        }
+    }
+
+    /// Clear cache for a genre
+    #[allow(dead_code)]
+    pub fn clear_cache(&self, genre: &str) {
+        let cache_path = self.cache_dir.join(format!("{}_rankings.json", genre));
+        let _ = fs::remove_file(cache_path);
+    }
+}
+
+/// Extract simple tags from title
+fn extract_tags_from_title(title: &str) -> Vec<String> {
+    let mut tags = Vec::new();
+    let title_lower = title.to_lowercase();
+
+    // Common novel tags
+    let tag_keywords = [
+        ("系统", "系统"),
+        ("穿越", "穿越"),
+        ("重生", "重生"),
+        ("都市", "都市"),
+        ("修仙", "修仙"),
+        ("玄幻", "玄幻"),
+        ("游戏", "游戏"),
+        ("同人", "同人"),
+        ("星际", "星际"),
+        ("末日", "末世"),
+    ];
+
+    for (keyword, tag) in tag_keywords {
+        if title_lower.contains(keyword) {
+            tags.push(tag.to_string());
+        }
+    }
+
+    tags
+}
+
+impl ScrapingService {
     /// Scrape genre rankings - fetches top works from a specific genre
     pub async fn scrape_genre_rankings(&self, genre: &str) -> Result<Vec<WorkInfo>> {
         tracing::info!("Scraping rankings for genre: {}", genre);

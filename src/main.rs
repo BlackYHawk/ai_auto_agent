@@ -1,6 +1,6 @@
 //! AI Novel Agent - CLI Entry Point
 
-use anyhow::Result;
+use anyhow::{Result, Context};
 use clap::{Parser, Subcommand};
 use std::path::PathBuf;
 
@@ -24,8 +24,12 @@ struct Cli {
 enum Commands {
     /// Initialize a new novel project
     New {
-        /// Novel name
+        /// Novel name/title
         name: String,
+
+        /// Novel summary/description (required, 10-2000 characters)
+        #[arg(short, long = "summary")]
+        summary: String,
 
         /// Genre (fantasy, urban, xianxia, historical, romance, scifi, game, horror)
         #[arg(short, long = "genre")]
@@ -39,7 +43,7 @@ enum Commands {
     /// Run feasibility analysis for a genre
     Feasibility {
         /// Project ID (optional, will create temp project if not provided)
-        #[arg(short, long = "project-id")]
+        #[arg(short = 'i', long = "project-id")]
         project_id: Option<String>,
 
         /// Genre to analyze (fantasy, urban, xianxia, etc.)
@@ -50,19 +54,19 @@ enum Commands {
     /// Generate novel outline
     Outline {
         /// Project ID
-        #[arg(short, long = "project-id")]
+        #[arg(short = 'i', long = "project-id")]
         project_id: String,
 
-        /// Premise/pitch of the story
-        #[arg(short, long = "premise")]
-        premise: String,
+        /// Premise/pitch of the story (optional, uses project summary if not provided)
+        #[arg(short = 'm', long = "premise")]
+        premise: Option<String>,
 
         /// Theme of the story
-        #[arg(short, long = "theme")]
+        #[arg(short = 't', long = "theme")]
         theme: Option<String>,
 
         /// Target word count
-        #[arg(short, long = "target", default_value = "1000000")]
+        #[arg(short = 'w', long = "target", default_value = "1000000")]
         target: u64,
 
         /// Genre (optional, will use project genre if not provided)
@@ -73,25 +77,25 @@ enum Commands {
     /// Generate chapter plan
     Plan {
         /// Project ID
-        #[arg(short, long = "project-id")]
+        #[arg(short = 'i', long = "project-id")]
         project_id: String,
     },
 
     /// Generate chapter(s)
     Generate {
         /// Project ID
-        #[arg(short, long = "project-id")]
+        #[arg(short = 'i', long = "project-id")]
         project_id: String,
 
         /// Chapter number (or range like "1-10")
-        #[arg(short, long = "chapters")]
+        #[arg(short = 'c', long = "chapters")]
         chapters: String,
     },
 
     /// Publish to Fanqie platform
     Publish {
         /// Project ID
-        #[arg(short, long = "project-id")]
+        #[arg(short = 'i', long = "project-id")]
         project_id: String,
 
         /// Subcommand
@@ -102,7 +106,7 @@ enum Commands {
     /// Check consistency
     Check {
         /// Project ID
-        #[arg(short, long = "project-id")]
+        #[arg(short = 'i', long = "project-id")]
         project_id: String,
     },
 
@@ -151,8 +155,25 @@ async fn main() -> Result<()> {
 
     // Execute command
     match cli.command {
-        Commands::New { name, genre, target } => {
+        Commands::New { name, summary, genre, target } => {
             tracing::info!("Creating new project: {} ({})", name, genre);
+
+            // Validate project fields
+            use ai_novel_agent::services::validation::ProjectValidator;
+            let validation = ProjectValidator::validate(&name, &summary, &genre, target);
+
+            if !validation.valid {
+                println!("Validation failed:");
+                for error in &validation.errors {
+                    println!("  - {}: {}", error.field, error.message);
+                }
+                anyhow::bail!("Project validation failed");
+            }
+
+            // Show warnings if any
+            for warning in &validation.warnings {
+                println!("Warning: {} - {}", warning.field, warning.message);
+            }
 
             // Parse genre
             let novel_genre = match genre.to_lowercase().as_str() {
@@ -170,8 +191,13 @@ async fn main() -> Result<()> {
                 }
             };
 
-            // Create project
-            let project = ai_novel_agent::models::NovelProject::new(name, novel_genre, target);
+            // Create project with summary
+            let project = ai_novel_agent::models::NovelProject::new_with_summary(
+                name,
+                summary,
+                novel_genre,
+                target,
+            );
 
             // Save project with directory structure
             let storage = ai_novel_agent::services::StorageService::new_project(".", project.id)?;
@@ -193,9 +219,29 @@ async fn main() -> Result<()> {
         }
         Commands::Outline { project_id, premise, theme, target, genre } => {
             tracing::info!("Generating outline for: {}", project_id);
-            // Parse genre if provided, otherwise use default
-            let genre_str = genre.unwrap_or_else(|| "fantasy".to_string());
-            ai_novel_agent::cli::commands::outline::run(&project_id, &premise, theme.as_deref(), target, &genre_str).await?;
+
+            // Parse project ID
+            let project_uuid = uuid::Uuid::parse_str(&project_id)
+                .context("Invalid project ID format")?;
+
+            // Load project to get summary
+            let storage = ai_novel_agent::services::StorageService::new_project(".", project_uuid)?;
+            let project = storage.load::<ai_novel_agent::models::NovelProject>()?
+                .context("Project not found")?;
+
+            // Use provided premise or fall back to project summary
+            let final_premise = premise.unwrap_or_else(|| {
+                if project.summary.is_empty() {
+                    tracing::warn!("No premise provided and project summary is empty, using default");
+                    "".to_string()
+                } else {
+                    project.summary.clone()
+                }
+            });
+
+            // Parse genre if provided, otherwise use project genre
+            let genre_str = genre.unwrap_or_else(|| project.genre.to_string());
+            ai_novel_agent::cli::commands::outline::run(&project_id, &final_premise, theme.as_deref(), target, &genre_str).await?;
         }
         Commands::Plan { project_id } => {
             tracing::info!("Generating chapter plan for: {}", project_id);

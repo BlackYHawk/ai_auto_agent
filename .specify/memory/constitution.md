@@ -20,6 +20,9 @@ Every generation operation MUST be logged with sufficient context for reproducti
 ### VI. Modularity & Reusability
 Core components MUST be designed as reusable libraries: context management, outline handling, generation strategies, and quality assessment. Each library must be independently testable and documented. No organizational-only modules without clear functional purpose.
 
+### VII. Documentation Synchronization (NON-NEGOTIABLE)
+Any change to integration operations (CLI commands, API endpoints, configuration options, new features) MUST be automatically reflected in README.md. This includes: new commands, parameter changes, usage examples, and breaking changes. Documentation sync is part of the implementation, not a separate task. No feature is complete until documentation reflects the current state.
+
 ## Technical Constraints
 
 ### Rust Implementation
@@ -44,7 +47,7 @@ All PRs must verify:
 1. Context consistency tests included/updated
 2. Outline alignment verified
 3. Performance impact assessed
-4. Documentation updated
+4. Documentation updated (including README.md for CLI/API changes)
 
 ### Complexity Justification
 Any architectural complexity must be justified with:
@@ -62,4 +65,4 @@ This constitution supersedes all other practices. Amendments require:
 
 All team members must verify compliance with these principles in every PR.
 
-**Version**: 1.0.0 | **Ratified**: 2026-02-14 | **Last Amended**: 2026-02-14
+**Version**: 1.1.0 | **Ratified**: 2026-02-14 | **Last Amended**: 2026-02-21

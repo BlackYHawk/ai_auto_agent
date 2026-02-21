@@ -78,6 +78,10 @@ pub struct NovelProject {
     /// Novel title
     pub name: String,
 
+    /// Novel summary/description
+    #[serde(default)]
+    pub summary: String,
+
     /// Genre
     pub genre: NovelGenre,
 
@@ -111,6 +115,25 @@ impl NovelProject {
         Self {
             id: Uuid::new_v4(),
             name,
+            summary: String::new(),
+            genre,
+            status: ProjectStatus::Draft,
+            target_word_count,
+            fanqie_novel_id: None,
+            publication_status: PublicationStatus::NotPublished,
+            model_config: ProjectModelConfig::default(),
+            created_at: now,
+            updated_at: now,
+        }
+    }
+
+    /// Create a new project with summary
+    pub fn new_with_summary(name: String, summary: String, genre: NovelGenre, target_word_count: u64) -> Self {
+        let now = Utc::now();
+        Self {
+            id: Uuid::new_v4(),
+            name,
+            summary,
             genre,
             status: ProjectStatus::Draft,
             target_word_count,

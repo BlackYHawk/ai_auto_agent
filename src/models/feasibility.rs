@@ -6,6 +6,15 @@ use uuid::Uuid;
 
 use super::NovelGenre;
 
+/// Data source for feasibility analysis
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum DataSource {
+    FanqieLive,    // Real-time data from Fanqie website
+    FanqieCache,  // Cached data from previous scrape
+    Fallback,     // Fallback/mock data when no data available
+}
+
 /// Competition level
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
@@ -22,6 +31,34 @@ pub enum Recommendation {
     Proceed,
     Revise,
     Reject,
+}
+
+/// Market data from scraping
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct MarketData {
+    /// Total books in genre
+    pub total_books: u32,
+    /// Hot books in genre
+    pub hot_books: Vec<HotBook>,
+    /// Average word count
+    pub average_word_count: u64,
+    /// Popular tags
+    pub tags: Vec<String>,
+}
+
+/// Hot book entry
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct HotBook {
+    /// Book title
+    pub title: String,
+    /// Author
+    pub author: String,
+    /// Word count
+    pub word_count: u64,
+    /// Likes/favorites
+    pub likes: u64,
+    /// Rating
+    pub rating: Option<f32>,
 }
 
 /// A competitive work
@@ -74,6 +111,12 @@ pub struct FeasibilityReport {
     /// Genre analyzed
     pub genre: NovelGenre,
 
+    /// Market data from scraping
+    pub market_data: Option<MarketData>,
+
+    /// Data source indicator
+    pub data_source: DataSource,
+
     /// Total works in genre
     pub total_works_in_genre: u32,
 
@@ -112,6 +155,8 @@ impl FeasibilityReport {
             id: Uuid::new_v4(),
             project_id,
             genre,
+            market_data: None,
+            data_source: DataSource::Fallback,
             total_works_in_genre: 0,
             average_views_top100: 0,
             average_favorites_top100: 0,

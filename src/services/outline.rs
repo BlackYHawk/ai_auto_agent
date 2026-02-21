@@ -5,8 +5,9 @@ use uuid::Uuid;
 use crate::models::{
     NovelOutline, NovelGenre, OutlineStatus, PlotArc, CharacterArc,
     CharacterRole, CharacterMoment, WorldSettings, WorldType, Location,
-    LocationImportance,
+    LocationImportance, OutlineValidation,
 };
+use crate::services::validation::{ConsistencyChecker, CopyrightChecker};
 
 /// Outline generation service
 #[allow(dead_code)]
@@ -53,6 +54,40 @@ impl OutlineService {
         outline.status = OutlineStatus::Draft;
 
         Ok(outline)
+    }
+
+    /// Validate outline consistency and copyright
+    pub fn validate(
+        &self,
+        outline: &NovelOutline,
+        genre: NovelGenre,
+    ) -> OutlineValidation {
+        let genre_str = genre.to_string();
+        let outline_content = serde_json::to_string(outline).unwrap_or_default();
+
+        // Consistency check
+        let consistency = ConsistencyChecker::new();
+        let consistency_result = consistency.check(
+            &genre_str,
+            &outline_content,
+            &outline.premise,
+        );
+
+        // Copyright check for protagonist
+        let copyright = CopyrightChecker::new();
+        let protagonist_check = copyright.check(&outline.protagonist.name, Some(&genre_str));
+
+        // Copyright check for supporting characters
+        let character_checks: Vec<_> = outline.supporting_characters
+            .iter()
+            .map(|c| copyright.check(&c.name, Some(&genre_str)))
+            .collect();
+
+        OutlineValidation {
+            consistency: consistency_result,
+            protagonist_check,
+            character_checks,
+        }
     }
 
     /// Generate plot arcs

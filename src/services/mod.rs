@@ -14,6 +14,7 @@ pub mod fanqie;
 pub mod vector_store;
 pub mod consistency;
 pub mod progress;
+pub mod validation;
 
 pub use storage::*;
 pub use scraping::*;
@@ -27,5 +28,9 @@ pub use llm::*;
 pub use context::*;
 pub use fanqie::*;
 pub use vector_store::*;
-pub use consistency::*;
+pub use consistency::{ConsistencyCheckResult, ConsistencyChecker};
 pub use progress::*;
+pub use validation::{
+    CopyrightChecker, ConsistencyChecker as ValidationConsistencyChecker,
+    is_common_name, ProjectValidator,
+};
